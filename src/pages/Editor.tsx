@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ArrowLeft, Download, Users, Eye, Share } from "lucide-react";
 import { GridPreview } from "@/components/GridPreview";
 import { toast } from "sonner";
+import { GridTemplate } from "@/context/CollageContext";
 
 interface GroupInfo {
   groupId: string;
@@ -21,7 +21,8 @@ interface GroupInfo {
     id: string;
     name: string;
     photo: string;
-    vote: string;
+    vote: GridTemplate;
+    joinedAt: Date;
   }>;
   isLeader: boolean;
 }
