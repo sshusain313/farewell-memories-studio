@@ -266,7 +266,7 @@ const JoinGroup = () => {
                     template={group.gridTemplate}
                     memberCount={group.totalMembers}
                     members={group.members}
-                    size="large"
+                    size="medium"
                   />
                 </CardContent>
               </Card>

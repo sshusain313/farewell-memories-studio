@@ -31,7 +31,13 @@ export const HexagonalGrid: React.FC<HexagonalGridProps> = ({
     
     if (ring === 0) return { x: centerX, y: centerY };
     
-    const radius = ring * (config.regular + 8);
+    // Calculate ring spacing based on size
+    const ringSpacing = size === 'xlarge' ? 20 : size === 'large' ? 16 : size === 'medium' ? 12 : 8;
+    
+    // Calculate radius with additional spacing between each ring
+    const baseSpacing = config.regular + 8;
+    const radius = (ring * baseSpacing) + (ring * ringSpacing);
+    
     const angle = (positionInRing / (ring * 6)) * 2 * Math.PI;
     
     return {
