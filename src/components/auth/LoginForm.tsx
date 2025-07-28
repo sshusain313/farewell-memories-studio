@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 interface LoginFormProps {
   onToggleMode: () => void;
@@ -18,6 +19,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,6 +29,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onToggleMode }) => {
       const success = await login(formData.email, formData.password);
       if (success) {
         toast.success('Login successful!');
+        navigate('/dashboard');
       } else {
         toast.error('Invalid credentials');
       }

@@ -34,9 +34,9 @@ const App = () => (
                 </ProtectedRoute>
               } />
               <Route path="/join/:groupId" element={
-                <ProtectedRoute>
+                // <ProtectedRoute>
                   <JoinGroup />
-                </ProtectedRoute>
+                // </ProtectedRoute>
               } />
               <Route path="/dashboard" element={
                 <ProtectedRoute requiresLeader>
@@ -45,6 +45,11 @@ const App = () => (
               } />
               <Route path="/editor" element={
                 <ProtectedRoute requiresLeader>
+                  <Editor />
+                </ProtectedRoute>
+              } />
+              <Route path="/editor/:groupId" element={
+                <ProtectedRoute>
                   <Editor />
                 </ProtectedRoute>
               } />

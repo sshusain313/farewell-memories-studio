@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ArrowLeft, Upload, Users, Calendar, Vote } from "lucide-react";
 import { useCollage, GridTemplate } from "@/context/CollageContext";
+import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { GridPreview } from "@/components/GridPreview";
 
@@ -18,7 +19,8 @@ const JoinGroup = () => {
     vote: "square" as GridTemplate
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { getGroup, joinGroup, updateGroupTemplate } = useCollage();
+  const { getGroup, joinGroup, updateGroupTemplate, isLoading } = useCollage();
+  const { updateUser } = useAuth();
   const navigate = useNavigate();
 
   const group = groupId ? getGroup(groupId) : undefined;
@@ -28,6 +30,20 @@ const JoinGroup = () => {
       updateGroupTemplate(groupId);
     }
   }, [group?.votes, groupId, updateGroupTemplate]);
+
+  // Show loading state while context is initializing
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-yellow-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md text-center">
+          <CardContent className="pt-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Loading...</h1>
+            <p className="text-gray-600">Initializing application...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -49,22 +65,8 @@ const JoinGroup = () => {
     try {
       const success = joinGroup(groupId, memberData);
       if (success) {
-        // Update localStorage with new member data
-        const savedGroupInfo = localStorage.getItem('groupInfo');
-        if (savedGroupInfo) {
-          const groupInfo = JSON.parse(savedGroupInfo);
-          const newMember = {
-            id: Math.random().toString(36).substr(2, 9),
-            name: memberData.name,
-            photo: memberData.photo,
-            vote: memberData.vote
-          };
-          
-          groupInfo.members.push(newMember);
-          groupInfo.gridVotes[memberData.vote]++;
-          
-          localStorage.setItem('groupInfo', JSON.stringify(groupInfo));
-        }
+        // Update user data to set groupId
+        updateUser({ groupId });
         
         toast.success("Successfully joined the group!");
         navigate(`/`);
@@ -264,7 +266,7 @@ const JoinGroup = () => {
                     template={group.gridTemplate}
                     memberCount={group.totalMembers}
                     members={group.members}
-                    size="medium"
+                    size="large"
                   />
                 </CardContent>
               </Card>

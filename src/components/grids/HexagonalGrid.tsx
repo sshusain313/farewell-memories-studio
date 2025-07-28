@@ -48,8 +48,8 @@ export const HexagonalGrid: React.FC<HexagonalGridProps> = ({
     // Center position
     if (memberIndex < memberCount) {
       positions.push({
-        index: centerIndex,
-        member: members[centerIndex],
+        index: memberIndex,
+        member: members[memberIndex],
         isCenter: true,
         ...getHexagonPosition(memberIndex, 0, 0)
       });
@@ -61,15 +61,12 @@ export const HexagonalGrid: React.FC<HexagonalGridProps> = ({
     while (memberIndex < memberCount) {
       const membersInRing = ring * 6;
       for (let i = 0; i < membersInRing && memberIndex < memberCount; i++) {
-        const actualIndex = memberIndex >= centerIndex ? memberIndex : memberIndex - 1;
-        if (actualIndex !== centerIndex) {
-          positions.push({
-            index: actualIndex,
-            member: members[actualIndex],
-            isCenter: false,
-            ...getHexagonPosition(memberIndex, ring, i)
-          });
-        }
+        positions.push({
+          index: memberIndex,
+          member: members[memberIndex],
+          isCenter: false,
+          ...getHexagonPosition(memberIndex, ring, i)
+        });
         memberIndex++;
       }
       ring++;
@@ -93,8 +90,8 @@ export const HexagonalGrid: React.FC<HexagonalGridProps> = ({
   };
 
   return (
-    <div className={cn("relative", config.container)}>
-      <svg width="100%" height="100%" viewBox="0 0 384 384" className="absolute inset-0">
+    <div className={cn(" relative bg-pink-50", config.container)}>
+      <svg width="100%" height="100%" viewBox="0 0 284 284" className="absolute inset-0">
         {positions.map((pos, index) => (
           <g key={index} transform={`translate(${pos.x}, ${pos.y})`}>
             <defs>

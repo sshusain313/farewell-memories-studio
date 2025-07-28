@@ -3,8 +3,22 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Camera, Shirt, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useCollage } from "@/context/CollageContext";
 
 const Index = () => {
+  const { createGroup } = useCollage();
+
+  const createTestGroup = () => {
+    const groupId = createGroup({
+      name: "Test Group",
+      yearOfPassing: "2024",
+      totalMembers: 10,
+      gridTemplate: "square"
+    });
+    console.log('Created test group with ID:', groupId);
+    alert(`Test group created with ID: ${groupId}\nVisit: http://localhost:8080/join/${groupId}`);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-yellow-50">
       {/* Header */}
@@ -14,11 +28,16 @@ const Index = () => {
             <Shirt className="h-8 w-8 text-purple-600" />
             <h1 className="text-2xl font-bold text-gray-900">FarewellTees</h1>
           </div>
-          <Link to="/create-group">
-            <Button className="bg-purple-600 hover:bg-purple-700">
-              Create Group
+          <div className="flex space-x-2">
+            <Link to="/create-group">
+              <Button className="bg-purple-600 hover:bg-purple-700">
+                Create Group
+              </Button>
+            </Link>
+            <Button onClick={createTestGroup} variant="outline">
+              Create Test Group
             </Button>
-          </Link>
+          </div>
         </div>
       </header>
 

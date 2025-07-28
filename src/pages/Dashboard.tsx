@@ -6,50 +6,46 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Users, Share, Eye, LogOut } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useCollage } from '@/context/CollageContext';
 import { toast } from 'sonner';
 
-interface GroupInfo {
-  groupId: string;
-  groupName: string;
-  year: string;
-  totalMembers: number;
-  gridVotes: {
-    hexagonal: number;
-    square: number;
-    circle: number;
-  };
-  members: Array<{
-    id: string;
-    name: string;
-    photo: string;
-    vote: string;
-  }>;
-  isLeader: boolean;
-}
-
 const Dashboard = () => {
-  const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null);
   const { user, logout } = useAuth();
+  const { getGroup, getAllGroups, isLoading, groups } = useCollage();
   const navigate = useNavigate();
+  const [group, setGroup] = useState<any>(null);
 
+  // Update group data whenever user's groupId or groups change
   useEffect(() => {
-    const savedGroupInfo = localStorage.getItem('groupInfo');
-    if (savedGroupInfo) {
-      try {
-        setGroupInfo(JSON.parse(savedGroupInfo));
-      } catch (error) {
-        console.error('Error parsing group info:', error);
+    if (user?.groupId) {
+      const userGroup = getGroup(user.groupId);
+      if (userGroup) {
+        setGroup(userGroup);
       }
     }
-  }, []);
+  }, [user?.groupId, getGroup, groups]); // Add groups as a dependency to re-run when any group updates
 
-  const getWinningTemplate = (votes: GroupInfo['gridVotes']) => {
+  // Show loading state while context is initializing
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-yellow-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md text-center">
+          <CardContent className="pt-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Loading...</h1>
+            <p className="text-gray-600">Initializing application...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const getWinningTemplate = (votes: any) => {
     return Object.entries(votes).sort((a, b) => b[1] - a[1])[0][0];
   };
 
   const handleShare = () => {
-    if (groupInfo) {
-      const shareLink = `${window.location.origin}/join/${groupInfo.groupId}`;
+    if (group) {
+      const shareLink = `${window.location.origin}/join/${group.id}`;
       navigator.clipboard.writeText(shareLink);
       toast.success('Share link copied to clipboard!');
     }
@@ -60,7 +56,7 @@ const Dashboard = () => {
     navigate('/auth');
   };
 
-  if (!groupInfo) {
+  if (!group) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-yellow-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md text-center">
@@ -78,8 +74,8 @@ const Dashboard = () => {
     );
   }
 
-  const winningTemplate = getWinningTemplate(groupInfo.gridVotes);
-  const completionPercentage = Math.round((groupInfo.members.length / groupInfo.totalMembers) * 100);
+  const winningTemplate = getWinningTemplate(group.votes);
+  const completionPercentage = Math.round((group.members.length / group.totalMembers) * 100);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-yellow-50 p-4">
@@ -87,8 +83,8 @@ const Dashboard = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{groupInfo.groupName}</h1>
-            <p className="text-gray-600">Class of {groupInfo.year} • Dashboard</p>
+            <h1 className="text-3xl font-bold text-gray-900">{group.name}</h1>
+            <p className="text-gray-600">Class of {group.yearOfPassing} • Dashboard</p>
           </div>
           <div className="flex items-center space-x-4">
             <span className="text-sm text-gray-600">Welcome, {user?.name}</span>
@@ -104,7 +100,7 @@ const Dashboard = () => {
           <Card>
             <CardContent className="pt-6 text-center">
               <Users className="h-8 w-8 mx-auto text-purple-600 mb-2" />
-              <p className="text-2xl font-bold">{groupInfo.members.length}/{groupInfo.totalMembers}</p>
+              <p className="text-2xl font-bold">{group.members.length}/{group.totalMembers}</p>
               <p className="text-sm text-gray-600">Members Joined</p>
             </CardContent>
           </Card>
@@ -125,7 +121,7 @@ const Dashboard = () => {
           <Card>
             <CardContent className="pt-6 text-center">
               <p className="text-2xl font-bold text-green-600">
-                {Object.values(groupInfo.gridVotes).reduce((a, b) => a + b, 0)}
+                {Object.values(group.votes).reduce((a: any, b: any) => a + b, 0)}
               </p>
               <p className="text-sm text-gray-600">Total Votes</p>
             </CardContent>
@@ -141,7 +137,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {Object.entries(groupInfo.gridVotes).map(([template, count]) => (
+                {Object.entries(group.votes).map(([template, count]) => (
                   <div key={template} className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <span className="capitalize font-medium">{template}</span>
@@ -154,8 +150,8 @@ const Dashboard = () => {
                         <div 
                           className="bg-purple-600 h-2 rounded-full transition-all duration-300"
                           style={{ 
-                            width: groupInfo.members.length > 0 
-                              ? `${(count / groupInfo.members.length) * 100}%` 
+                            width: group.members.length > 0 
+                              ? `${(count as number / group.members.length) * 100}%` 
                               : '0%' 
                           }}
                         />
@@ -172,11 +168,11 @@ const Dashboard = () => {
           <Card>
             <CardHeader>
               <CardTitle>Member Join Status</CardTitle>
-              <CardDescription>{groupInfo.members.length} of {groupInfo.totalMembers} members</CardDescription>
+              <CardDescription>{group.members.length} of {group.totalMembers} members</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3 max-h-64 overflow-y-auto">
-                {groupInfo.members.map((member, index) => (
+                {group.members.map((member: any, index: number) => (
                   <div key={member.id} className="flex items-center space-x-3 p-2 rounded-lg bg-gray-50">
                     <img
                       src={member.photo}
@@ -190,7 +186,7 @@ const Dashboard = () => {
                     <Badge variant="outline" className="text-xs">#{index + 1}</Badge>
                   </div>
                 ))}
-                {groupInfo.members.length === 0 && (
+                {group.members.length === 0 && (
                   <p className="text-gray-500 text-center py-4">No members have joined yet</p>
                 )}
               </div>
@@ -216,7 +212,7 @@ const Dashboard = () => {
               <div className="mt-4 p-3 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600 mb-2">Share this link with your group:</p>
                 <code className="text-xs bg-white p-2 rounded block break-all">
-                  {window.location.origin}/join/{groupInfo.groupId}
+                  {window.location.origin}/join/{group.id}
                 </code>
               </div>
             </CardContent>

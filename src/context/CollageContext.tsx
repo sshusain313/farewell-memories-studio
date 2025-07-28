@@ -1,5 +1,6 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { LocalStorageService } from '@/lib/localStorage';
 
 export type GridTemplate = 'hexagonal' | 'square' | 'circle';
 
@@ -29,6 +30,10 @@ interface CollageContextType {
   joinGroup: (groupId: string, memberData: Omit<Member, 'id' | 'joinedAt'>) => boolean;
   getGroup: (groupId: string) => Group | undefined;
   updateGroupTemplate: (groupId: string) => void;
+  getAllGroups: () => Group[];
+  deleteGroup: (groupId: string) => void;
+  updateGroup: (groupId: string, updates: Partial<Group>) => void;
+  isLoading: boolean;
 }
 
 const CollageContext = createContext<CollageContextType | undefined>(undefined);
@@ -43,6 +48,33 @@ export const useCollage = () => {
 
 export const CollageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [groups, setGroups] = useState<Record<string, Group>>({});
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Initialize groups from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedGroups = LocalStorageService.loadGroups();
+      setGroups(savedGroups);
+      setIsInitialized(true);
+    } catch (error) {
+      console.error('Error initializing CollageProvider:', error);
+      setIsInitialized(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Save groups to localStorage whenever groups change
+  useEffect(() => {
+    if (isInitialized && !isLoading) {
+      try {
+        LocalStorageService.saveGroups(groups);
+      } catch (error) {
+        console.error('Error saving groups to localStorage:', error);
+      }
+    }
+  }, [groups, isInitialized, isLoading]);
 
   const createGroup = (groupData: Omit<Group, 'id' | 'shareLink' | 'createdAt' | 'members' | 'votes'>): string => {
     const id = Math.random().toString(36).substr(2, 9);
@@ -58,9 +90,6 @@ export const CollageProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
 
     setGroups(prev => ({ ...prev, [id]: newGroup }));
-    
-    // Store in localStorage as well
-    localStorage.setItem(`group_${id}`, JSON.stringify(newGroup));
     
     return id;
   };
@@ -92,9 +121,6 @@ export const CollageProvider: React.FC<{ children: ReactNode }> = ({ children })
       [groupId]: updatedGroup
     }));
 
-    // Update localStorage
-    localStorage.setItem(`group_${groupId}`, JSON.stringify(updatedGroup));
-
     return true;
   };
 
@@ -115,30 +141,37 @@ export const CollageProvider: React.FC<{ children: ReactNode }> = ({ children })
       ...prev,
       [groupId]: updatedGroup
     }));
-
-    // Update localStorage
-    localStorage.setItem(`group_${groupId}`, JSON.stringify(updatedGroup));
   };
 
   const getGroup = (groupId: string): Group | undefined => {
-    // First check in-memory state
-    if (groups[groupId]) {
-      return groups[groupId];
-    }
+    return groups[groupId];
+  };
 
-    // Then check localStorage
-    const savedGroup = localStorage.getItem(`group_${groupId}`);
-    if (savedGroup) {
-      try {
-        const group = JSON.parse(savedGroup);
-        setGroups(prev => ({ ...prev, [groupId]: group }));
-        return group;
-      } catch (error) {
-        console.error('Error parsing saved group:', error);
-      }
-    }
+  const getAllGroups = (): Group[] => {
+    return Object.values(groups);
+  };
 
-    return undefined;
+  const deleteGroup = (groupId: string) => {
+    setGroups(prev => {
+      const newGroups = { ...prev };
+      delete newGroups[groupId];
+      return newGroups;
+    });
+  };
+
+  const updateGroup = (groupId: string, updates: Partial<Group>) => {
+    const group = groups[groupId];
+    if (!group) return;
+
+    const updatedGroup = {
+      ...group,
+      ...updates
+    };
+
+    setGroups(prev => ({
+      ...prev,
+      [groupId]: updatedGroup
+    }));
   };
 
   return (
@@ -147,7 +180,11 @@ export const CollageProvider: React.FC<{ children: ReactNode }> = ({ children })
       createGroup,
       joinGroup,
       getGroup,
-      updateGroupTemplate
+      updateGroupTemplate,
+      getAllGroups,
+      deleteGroup,
+      updateGroup,
+      isLoading
     }}>
       {children}
     </CollageContext.Provider>

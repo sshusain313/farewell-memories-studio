@@ -35,8 +35,8 @@ export const CircleGrid: React.FC<CircleGridProps> = ({
     // Center position
     if (memberIndex < memberCount) {
       positions.push({
-        index: centerIndex,
-        member: members[centerIndex],
+        index: memberIndex,
+        member: members[memberIndex],
         isCenter: true,
         x: centerX,
         y: centerY
@@ -52,19 +52,16 @@ export const CircleGrid: React.FC<CircleGridProps> = ({
       const maxMembersInRing = Math.floor(2 * Math.PI * radius / (config.regular + 8));
       const membersInRing = Math.min(remainingMembers, maxMembersInRing);
       
-      for (let i = 0; i < membersInRing; i++) {
+      for (let i = 0; i < membersInRing && memberIndex < memberCount; i++) {
         const angle = (i / membersInRing) * 2 * Math.PI;
-        const actualIndex = memberIndex >= centerIndex ? memberIndex : memberIndex - 1;
         
-        if (actualIndex !== centerIndex) {
-          positions.push({
-            index: actualIndex,
-            member: members[actualIndex],
-            isCenter: false,
-            x: centerX + radius * Math.cos(angle),
-            y: centerY + radius * Math.sin(angle)
-          });
-        }
+        positions.push({
+          index: memberIndex,
+          member: members[memberIndex],
+          isCenter: false,
+          x: centerX + radius * Math.cos(angle),
+          y: centerY + radius * Math.sin(angle)
+        });
         memberIndex++;
       }
       ring++;
@@ -76,7 +73,7 @@ export const CircleGrid: React.FC<CircleGridProps> = ({
   const positions = arrangeInRings();
 
   return (
-    <div className={cn("relative", config.container)}>
+    <div className={cn("relative bg-pink-50", config.container)}>
       <svg width="100%" height="100%" viewBox={`0 0 ${containerSize} ${containerSize}`} className="absolute inset-0">
         {positions.map((pos, index) => (
           <g key={index}>

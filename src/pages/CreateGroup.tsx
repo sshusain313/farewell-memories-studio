@@ -19,9 +19,23 @@ const CreateGroup = () => {
     gridTemplate: "square" as GridTemplate
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { createGroup } = useCollage();
-  const { user } = useAuth();
+  const { createGroup, isLoading } = useCollage();
+  const { user, updateUser } = useAuth();
   const navigate = useNavigate();
+
+  // Show loading state while context is initializing
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-yellow-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md text-center">
+          <CardContent className="pt-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Loading...</h1>
+            <p className="text-gray-600">Initializing application...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,23 +49,12 @@ const CreateGroup = () => {
         gridTemplate: formData.gridTemplate
       });
 
-      // Store group info in localStorage
-      const groupInfo = {
-        groupId,
-        groupName: formData.name,
-        year: formData.yearOfPassing,
-        totalMembers: parseInt(formData.totalMembers),
-        gridVotes: { hexagonal: 0, square: 0, circle: 0 },
-        members: [],
-        isLeader: true
-      };
-
-      localStorage.setItem('groupInfo', JSON.stringify(groupInfo));
-
-      // Update user data to mark as leader
+      // Update user data to mark as leader and set groupId
       if (user) {
-        const updatedUser = { ...user, isLeader: true, groupId };
-        localStorage.setItem('userData', JSON.stringify(updatedUser));
+        updateUser({ 
+          isLeader: true, 
+          groupId 
+        });
       }
 
       toast.success("Group created successfully!");
