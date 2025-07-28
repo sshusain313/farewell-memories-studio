@@ -1,14 +1,13 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ArrowLeft, Users, Calendar, Hash, Layout } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCollage, GridTemplate } from "@/context/CollageContext";
+import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { GridPreview } from "@/components/GridPreview";
 
@@ -21,6 +20,7 @@ const CreateGroup = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { createGroup } = useCollage();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,8 +35,27 @@ const CreateGroup = () => {
         gridTemplate: formData.gridTemplate
       });
 
+      // Store group info in localStorage
+      const groupInfo = {
+        groupId,
+        groupName: formData.name,
+        year: formData.yearOfPassing,
+        totalMembers: parseInt(formData.totalMembers),
+        gridVotes: { hexagonal: 0, square: 0, circle: 0 },
+        members: [],
+        isLeader: true
+      };
+
+      localStorage.setItem('groupInfo', JSON.stringify(groupInfo));
+
+      // Update user data to mark as leader
+      if (user) {
+        const updatedUser = { ...user, isLeader: true, groupId };
+        localStorage.setItem('userData', JSON.stringify(updatedUser));
+      }
+
       toast.success("Group created successfully!");
-      navigate(`/join/${groupId}`);
+      navigate(`/dashboard`);
     } catch (error) {
       toast.error("Failed to create group. Please try again.");
     } finally {

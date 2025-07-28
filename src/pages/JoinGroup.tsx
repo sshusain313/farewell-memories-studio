@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -50,8 +49,25 @@ const JoinGroup = () => {
     try {
       const success = joinGroup(groupId, memberData);
       if (success) {
+        // Update localStorage with new member data
+        const savedGroupInfo = localStorage.getItem('groupInfo');
+        if (savedGroupInfo) {
+          const groupInfo = JSON.parse(savedGroupInfo);
+          const newMember = {
+            id: Math.random().toString(36).substr(2, 9),
+            name: memberData.name,
+            photo: memberData.photo,
+            vote: memberData.vote
+          };
+          
+          groupInfo.members.push(newMember);
+          groupInfo.gridVotes[memberData.vote]++;
+          
+          localStorage.setItem('groupInfo', JSON.stringify(groupInfo));
+        }
+        
         toast.success("Successfully joined the group!");
-        navigate(`/editor/${groupId}`);
+        navigate(`/`);
       } else {
         toast.error("Unable to join group. It might be full or not exist.");
       }

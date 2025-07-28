@@ -58,6 +58,10 @@ export const CollageProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
 
     setGroups(prev => ({ ...prev, [id]: newGroup }));
+    
+    // Store in localStorage as well
+    localStorage.setItem(`group_${id}`, JSON.stringify(newGroup));
+    
     return id;
   };
 
@@ -74,17 +78,22 @@ export const CollageProvider: React.FC<{ children: ReactNode }> = ({ children })
       joinedAt: new Date()
     };
 
+    const updatedGroup = {
+      ...group,
+      members: [...group.members, newMember],
+      votes: {
+        ...group.votes,
+        [memberData.vote]: group.votes[memberData.vote] + 1
+      }
+    };
+
     setGroups(prev => ({
       ...prev,
-      [groupId]: {
-        ...prev[groupId],
-        members: [...prev[groupId].members, newMember],
-        votes: {
-          ...prev[groupId].votes,
-          [memberData.vote]: prev[groupId].votes[memberData.vote] + 1
-        }
-      }
+      [groupId]: updatedGroup
     }));
+
+    // Update localStorage
+    localStorage.setItem(`group_${groupId}`, JSON.stringify(updatedGroup));
 
     return true;
   };
@@ -97,17 +106,39 @@ export const CollageProvider: React.FC<{ children: ReactNode }> = ({ children })
       group.votes[a] > group.votes[b] ? a : b
     );
 
+    const updatedGroup = {
+      ...group,
+      gridTemplate: winningTemplate
+    };
+
     setGroups(prev => ({
       ...prev,
-      [groupId]: {
-        ...prev[groupId],
-        gridTemplate: winningTemplate
-      }
+      [groupId]: updatedGroup
     }));
+
+    // Update localStorage
+    localStorage.setItem(`group_${groupId}`, JSON.stringify(updatedGroup));
   };
 
   const getGroup = (groupId: string): Group | undefined => {
-    return groups[groupId];
+    // First check in-memory state
+    if (groups[groupId]) {
+      return groups[groupId];
+    }
+
+    // Then check localStorage
+    const savedGroup = localStorage.getItem(`group_${groupId}`);
+    if (savedGroup) {
+      try {
+        const group = JSON.parse(savedGroup);
+        setGroups(prev => ({ ...prev, [groupId]: group }));
+        return group;
+      } catch (error) {
+        console.error('Error parsing saved group:', error);
+      }
+    }
+
+    return undefined;
   };
 
   return (
