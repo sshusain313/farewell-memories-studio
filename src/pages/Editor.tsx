@@ -1,0 +1,232 @@
+
+import { useParams, Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, Download, Users, Eye, Share } from "lucide-react";
+import { useCollage } from "@/context/CollageContext";
+import { GridPreview } from "@/components/GridPreview";
+import { toast } from "sonner";
+
+const Editor = () => {
+  const { groupId } = useParams<{ groupId: string }>();
+  const { getGroup } = useCollage();
+
+  const group = groupId ? getGroup(groupId) : undefined;
+
+  if (!group) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-yellow-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md text-center">
+          <CardContent className="pt-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Group Not Found</h1>
+            <p className="text-gray-600 mb-6">The group you're looking for doesn't exist.</p>
+            <Link to="/">
+              <Button>Go Home</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const handleDownload = () => {
+    // In a real app, this would generate and download the collage image
+    toast.success("Collage downloaded successfully! (Demo)");
+  };
+
+  const handleShare = () => {
+    const shareLink = `${window.location.origin}/join/${groupId}`;
+    navigator.clipboard.writeText(shareLink);
+    toast.success("Share link copied to clipboard!");
+  };
+
+  const completionPercentage = Math.round((group.members.length / group.totalMembers) * 100);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-yellow-50 p-4">
+      <div className="container mx-auto max-w-6xl">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center">
+            <Link to="/">
+              <Button variant="ghost" size="sm" className="mr-4">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">{group.name}</h1>
+              <p className="text-gray-600">Class of {group.yearOfPassing} • {group.gridTemplate} grid</p>
+            </div>
+          </div>
+          <div className="flex space-x-2">
+            <Button variant="outline" onClick={handleShare}>
+              <Share className="h-4 w-4 mr-2" />
+              Share
+            </Button>
+            <Button onClick={handleDownload} className="bg-purple-600 hover:bg-purple-700">
+              <Download className="h-4 w-4 mr-2" />
+              Download
+            </Button>
+          </div>
+        </div>
+
+        {/* Progress */}
+        <Card className="mb-8 shadow-lg border-0">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <Users className="h-5 w-5 text-purple-600" />
+                <span className="font-medium">Group Progress</span>
+              </div>
+              <span className="text-lg font-bold text-purple-600">{completionPercentage}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-gradient-to-r from-purple-600 to-pink-600 h-2 rounded-full transition-all duration-500"
+                style={{ width: `${completionPercentage}%` }}
+              />
+            </div>
+            <p className="text-sm text-gray-600 mt-2">
+              {group.members.length} of {group.totalMembers} members have joined
+            </p>
+          </CardContent>
+        </Card>
+
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Collage Preview */}
+          <div className="lg:col-span-2">
+            <Card className="shadow-xl border-0">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-2xl">Live Collage Preview</CardTitle>
+                    <CardDescription>Your T-shirt design updates in real-time</CardDescription>
+                  </div>
+                  <Eye className="h-6 w-6 text-purple-600" />
+                </div>
+              </CardHeader>
+              <CardContent className="flex justify-center p-8">
+                <div className="relative">
+                  <GridPreview 
+                    template={group.gridTemplate}
+                    memberCount={group.totalMembers}
+                    members={group.members}
+                    size="xlarge"
+                  />
+                  {group.members.length === 0 && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center">
+                        <p className="text-gray-500 mb-2">Waiting for members to join...</p>
+                        <Button variant="outline" onClick={handleShare}>
+                          <Share className="h-4 w-4 mr-2" />
+                          Invite Members
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Member List */}
+            <Card className="shadow-lg border-0">
+              <CardHeader>
+                <CardTitle>Members ({group.members.length}/{group.totalMembers})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {group.members.length === 0 ? (
+                  <div className="text-center py-6">
+                    <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500">No members yet</p>
+                    <Button variant="outline" size="sm" className="mt-2" onClick={handleShare}>
+                      Invite Members
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-80 overflow-y-auto">
+                    {group.members.map((member, index) => (
+                      <div key={member.id} className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50">
+                        <div className="relative">
+                          <img
+                            src={member.photo}
+                            alt={member.name}
+                            className="w-12 h-12 rounded-full object-cover border-2 border-white shadow"
+                          />
+                          <div className="absolute -top-1 -right-1 bg-purple-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                            {index + 1}
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">{member.name}</p>
+                          <p className="text-sm text-gray-500">Voted: {member.vote}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Voting Results */}
+            <Card className="shadow-lg border-0">
+              <CardHeader>
+                <CardTitle>Template Votes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {(['square', 'hexagonal', 'circle'] as const).map((template) => (
+                    <div key={template} className="flex items-center justify-between">
+                      <span className="capitalize text-gray-700">{template}</span>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-20 bg-gray-200 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full transition-all duration-300 ${
+                              template === group.gridTemplate 
+                                ? 'bg-gradient-to-r from-purple-600 to-pink-600' 
+                                : 'bg-gray-400'
+                            }`}
+                            style={{ 
+                              width: group.members.length > 0 
+                                ? `${(group.votes[template] / group.members.length) * 100}%` 
+                                : '0%' 
+                            }}
+                          />
+                        </div>
+                        <span className="text-sm font-medium text-gray-600">
+                          {group.votes[template]}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Quick Actions */}
+            <Card className="shadow-lg border-0">
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button variant="outline" className="w-full" onClick={handleShare}>
+                  <Share className="h-4 w-4 mr-2" />
+                  Share Group Link
+                </Button>
+                <Button className="w-full bg-purple-600 hover:bg-purple-700" onClick={handleDownload}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Design
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Editor;
