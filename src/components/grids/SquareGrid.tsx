@@ -23,96 +23,108 @@ export const SquareGrid: React.FC<SquareGridProps> = ({
 
   const config = sizeConfig[size];
 
-  const generateGridPositions = () => {
-    // Calculate grid size to accommodate all members plus center cell
-    const gridSize = Math.ceil(Math.sqrt(memberCount + 3)); // +3 for the 2x2 center area
-    const centerRow = Math.floor(gridSize / 2);
-    const centerCol = Math.floor(gridSize / 2);
+  const generateSpiralPositions = () => {
+    if (memberCount === 0) return [];
 
-    // Track occupied cells
-    const occupied = new Set<string>();
-    
-    // Reserve 2x2 center area
-    occupied.add(`${centerRow},${centerCol}`);
-    occupied.add(`${centerRow},${centerCol + 1}`);
-    occupied.add(`${centerRow + 1},${centerCol}`);
-    occupied.add(`${centerRow + 1},${centerCol + 1}`);
+    // Calculate grid size needed to accommodate all members
+    const gridSize = Math.ceil(Math.sqrt(memberCount * 4)) + 2; // Extra space for center expansion
+    const center = Math.floor(gridSize / 2);
 
     const positions: {
-      index: number;
       member: Member | null;
       isCenter: boolean;
       row: number;
       col: number;
+      gridRow: number;
+      gridCol: number;
     }[] = [];
 
-    let memberIndex = 0;
-
-    // Place center member (spans 2x2)
+    // Place center member first (always the first member if available)
     positions.push({
-      index: 0,
-      member: members[memberIndex++] || null,
+      member: members[0] || null,
       isCenter: true,
-      row: centerRow,
-      col: centerCol,
+      row: center,
+      col: center,
+      gridRow: center + 1,
+      gridCol: center + 1,
     });
 
-    // Spiral placement around center
-    let currentRow = centerRow - 1;
-    let currentCol = centerCol - 1;
+    if (memberCount === 1) return positions;
+
+    // Spiral directions: right, down, left, up
+    const directions = [
+      { row: 0, col: 1 },  // right
+      { row: 1, col: 0 },  // down
+      { row: 0, col: -1 }, // left
+      { row: -1, col: 0 }, // up
+    ];
+
+    let currentRow = center;
+    let currentCol = center + 1; // Start one cell to the right of center
+    let directionIndex = 0;
     let steps = 1;
-    let direction = 0; // 0: right, 1: down, 2: left, 3: up
-    const dx = [0, 1, 0, -1]; // right, down, left, up
-    const dy = [1, 0, -1, 0];
+    let memberIndex = 1;
 
     while (memberIndex < memberCount) {
-      for (let turn = 0; turn < 2 && memberIndex < memberCount; turn++) {
-        for (let step = 0; step < steps && memberIndex < memberCount; step++) {
-          const cellKey = `${currentRow},${currentCol}`;
+      // Move in current direction for 'steps' number of times
+      for (let i = 0; i < steps && memberIndex < memberCount; i++) {
+        // Skip if this would overlap with center cell (2x2 area)
+        if (!(currentRow >= center && currentRow <= center && 
+              currentCol >= center && currentCol <= center)) {
           
-          // Check if cell is valid and not occupied
-          if (
-            currentRow >= 0 && 
-            currentRow < gridSize && 
-            currentCol >= 0 && 
-            currentCol < gridSize && 
-            !occupied.has(cellKey)
-          ) {
-            occupied.add(cellKey);
-            positions.push({
-              index: memberIndex,
-              member: members[memberIndex] || null,
-              isCenter: false,
-              row: currentRow,
-              col: currentCol,
-            });
-            memberIndex++;
-          }
-
-          // Move to next position
-          currentRow += dx[direction];
-          currentCol += dy[direction];
+          positions.push({
+            member: members[memberIndex] || null,
+            isCenter: false,
+            row: currentRow,
+            col: currentCol,
+            gridRow: currentRow + 1,
+            gridCol: currentCol + 1,
+          });
+          memberIndex++;
         }
-        direction = (direction + 1) % 4;
+
+        // Move to next position in current direction
+        if (memberIndex < memberCount) {
+          currentRow += directions[directionIndex].row;
+          currentCol += directions[directionIndex].col;
+        }
       }
-      steps++;
+
+      // Change direction (90-degree turn)
+      directionIndex = (directionIndex + 1) % 4;
+
+      // Increase steps every two direction changes (after completing right+down or left+up)
+      if (directionIndex % 2 === 0) {
+        steps++;
+      }
     }
 
     return positions;
   };
 
-  const positions = generateGridPositions();
+  const positions = generateSpiralPositions();
+
+  if (positions.length === 0) {
+    return (
+      <div className={cn('flex items-center justify-center p-4 bg-pink-50', config.container)}>
+        <div className="text-gray-400 text-sm">No members to display</div>
+      </div>
+    );
+  }
 
   // Calculate grid bounds
-  const maxRow = Math.max(...positions.map(p => p.row));
-  const maxCol = Math.max(...positions.map(p => p.col));
-  const minRow = Math.min(...positions.map(p => p.row));
-  const minCol = Math.min(...positions.map(p => p.col));
+  const rows = positions.map(p => p.row);
+  const cols = positions.map(p => p.col);
+  const minRow = Math.min(...rows);
+  const maxRow = Math.max(...rows);
+  const minCol = Math.min(...cols);
+  const maxCol = Math.max(...cols);
 
+  // Calculate grid dimensions and offsets
+  const gridRows = maxRow - minRow + 2; // +1 for center cell expansion
+  const gridCols = maxCol - minCol + 2; // +1 for center cell expansion
   const rowOffset = -minRow;
   const colOffset = -minCol;
-  const usedRows = maxRow - minRow + 2; // +1 for the extra row needed for 2x2 center
-  const usedCols = maxCol - minCol + 2; // +1 for the extra col needed for 2x2 center
 
   return (
     <div className={cn('flex items-center justify-center p-4 bg-pink-50', config.container)}>
@@ -120,8 +132,8 @@ export const SquareGrid: React.FC<SquareGridProps> = ({
         className="grid"
         style={{
           display: 'grid',
-          gridTemplateColumns: `repeat(${usedCols}, ${config.regular}px)`,
-          gridTemplateRows: `repeat(${usedRows}, ${config.regular}px)`,
+          gridTemplateColumns: `repeat(${gridCols}, ${config.regular}px)`,
+          gridTemplateRows: `repeat(${gridRows}, ${config.regular}px)`,
           gap: `${config.gap}px`,
           position: 'relative',
         }}
@@ -154,7 +166,7 @@ export const SquareGrid: React.FC<SquareGridProps> = ({
                   pos.isCenter ? 'text-sm' : 'text-xs'
                 )}
               >
-                {pos.index + 1}
+                {index + 1}
               </div>
             )}
           </div>
