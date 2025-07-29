@@ -39,8 +39,8 @@ const Dashboard = () => {
     );
   }
 
-  const getWinningTemplate = (votes: any) => {
-    return Object.entries(votes).sort((a, b) => b[1] - a[1])[0][0];
+  const getWinningTemplate = (votes: { hexagonal: number; square: number; circle: number }) => {
+    return Object.entries(votes).sort((a, b) => (b[1] as number) - (a[1] as number))[0][0];
   };
 
   const handleShare = () => {
@@ -76,6 +76,7 @@ const Dashboard = () => {
 
   const winningTemplate = getWinningTemplate(group.votes);
   const completionPercentage = Math.round((group.members.length / group.totalMembers) * 100);
+  const totalVotes = Object.values(group.votes as { hexagonal: number; square: number; circle: number }).reduce((a: number, b: number) => a + b, 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-yellow-50 p-4">
@@ -121,7 +122,7 @@ const Dashboard = () => {
           <Card>
             <CardContent className="pt-6 text-center">
               <p className="text-2xl font-bold text-green-600">
-                {Object.values(group.votes).reduce((a: any, b: any) => a + b, 0)}
+                {totalVotes}
               </p>
               <p className="text-sm text-gray-600">Total Votes</p>
             </CardContent>
@@ -151,12 +152,12 @@ const Dashboard = () => {
                           className="bg-purple-600 h-2 rounded-full transition-all duration-300"
                           style={{ 
                             width: group.members.length > 0 
-                              ? `${(count as number / group.members.length) * 100}%` 
+                              ? `${((count as number) / group.members.length) * 100}%` 
                               : '0%' 
                           }}
                         />
                       </div>
-                      <span className="text-sm font-medium">{count}</span>
+                      <span className="text-sm font-medium">{count as number}</span>
                     </div>
                   </div>
                 ))}

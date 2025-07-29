@@ -58,8 +58,8 @@ const Editor = () => {
     );
   }
 
-  const getWinningTemplate = (votes: any) => {
-    return Object.entries(votes).sort((a, b) => b[1] - a[1])[0][0] as 'hexagonal' | 'square' | 'circle';
+  const getWinningTemplate = (votes: { hexagonal: number; square: number; circle: number }) => {
+    return Object.entries(votes).sort((a, b) => (b[1] as number) - (a[1] as number))[0][0] as 'hexagonal' | 'square' | 'circle';
   };
 
   const handleDownload = () => {
@@ -77,7 +77,7 @@ const Editor = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-yellow-50 p-4">
-      <div className="container mx-auto max-w-6xl">
+      <div className="container mx-auto max-w-7xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center">

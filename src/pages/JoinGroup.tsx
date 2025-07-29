@@ -259,13 +259,19 @@ const JoinGroup = () => {
               <Card className="shadow-xl border-0 relative">
                 <CardHeader>
                   <CardTitle>Grid Preview</CardTitle>
-                  <CardDescription>Current winning template</CardDescription>
+                  <CardDescription>Your selected template</CardDescription>
                 </CardHeader>
                 <CardContent className="flex justify-center">
                   <GridPreview 
-                    template={group.gridTemplate}
+                    template={memberData.vote}
                     memberCount={group.totalMembers}
-                    members={group.members}
+                    members={memberData.photo ? [{
+                      id: 'preview',
+                      name: memberData.name || 'You',
+                      photo: memberData.photo,
+                      vote: memberData.vote,
+                      joinedAt: new Date()
+                    }] : []}
                     size="medium"
                   />
                 </CardContent>
