@@ -1,4 +1,139 @@
 
+// import React from 'react';
+// import { Member } from '@/context/CollageContext';
+// import { cn } from '@/lib/utils';
+
+// interface SquareGridProps {
+//   memberCount: number;
+//   members: Member[];
+//   size: 'small' | 'medium' | 'large' | 'xlarge';
+// }
+
+// export const SquareGrid: React.FC<SquareGridProps> = ({ 
+//   memberCount, 
+//   members, 
+//   size 
+// }) => {
+//   const sizeConfig = {
+//     small: { container: 'w-32 h-32', regular: 20, center: 40, gap: 2 },
+//     medium: { container: 'w-48 h-48', regular: 28, center: 56, gap: 3 },
+//     large: { container: 'w-64 h-64', regular: 36, center: 72, gap: 4 },
+//     xlarge: { container: 'w-96 h-96', regular: 48, center: 96, gap: 6 }
+//   };
+
+//   const config = sizeConfig[size];
+  
+//   // Calculate grid size: smallest N where N*N >= memberCount
+//   const gridSize = Math.ceil(Math.sqrt(memberCount));
+  
+//   // Center position in the grid
+//   const centerRow = Math.floor(gridSize / 2);
+//   const centerCol = Math.floor(gridSize / 2);
+//   const centerIndex = centerRow * gridSize + centerCol;
+
+//   const cellStyle = (isCenter: boolean) => ({
+//     width: isCenter ? config.center : config.regular,
+//     height: isCenter ? config.center : config.regular,
+//     borderRadius: '8px',
+//   });
+
+//   // Generate grid positions with first member in center
+//   const generateGridPositions = () => {
+//     const positions = [];
+//     let memberIndex = 0;
+    
+//     for (let row = 0; row < gridSize; row++) {
+//       for (let col = 0; col < gridSize; col++) {
+//         const gridIndex = row * gridSize + col;
+//         const isCenter = row === centerRow && col === centerCol;
+        
+//         // Skip center position for non-first members
+//         if (isCenter) {
+//           // Place first member in center
+//           positions.push({
+//             index: gridIndex,
+//             member: memberIndex < memberCount ? members[memberIndex] : null,
+//             isCenter: true,
+//             row,
+//             col
+//           });
+//           memberIndex++;
+//         } else {
+//           // Place remaining members in other positions
+//           if (memberIndex < memberCount) {
+//             positions.push({
+//               index: gridIndex,
+//               member: members[memberIndex],
+//               isCenter: false,
+//               row,
+//               col
+//             });
+//             memberIndex++;
+//           } else {
+//             // Empty position
+//             positions.push({
+//               index: gridIndex,
+//               member: null,
+//               isCenter: false,
+//               row,
+//               col
+//             });
+//           }
+//         }
+//       }
+//     }
+    
+//     return positions;
+//   };
+
+//   const positions = generateGridPositions();
+
+//   return (
+//     <div className={cn("flex items-center justify-center p-4", config.container)}>
+//       <div
+//         className="grid"
+//         style={{
+//           display: 'grid',
+//           gridTemplateColumns: `repeat(${gridSize}, ${config.regular}px)`,
+//           gap: `${config.gap}px`,
+//           position: 'relative'
+//         }}
+//       >
+//         {positions.map((pos, index) => (
+//           <div
+//             key={index}
+//             className={cn(
+//               "border-2 border-dashed flex items-center justify-center overflow-hidden",
+//               pos.member ? "border-purple-400 bg-purple-50" : "border-gray-300 bg-gray-50"
+//             )}
+//             style={{
+//               ...cellStyle(pos.isCenter),
+//               gridColumn: pos.isCenter ? `span 2` : undefined,
+//               gridRow: pos.isCenter ? `span 2` : undefined,
+//             }}
+//           >
+//             {pos.member ? (
+//               <img
+//                 src={pos.member.photo}
+//                 alt={pos.member.name}
+//                 className="w-full h-full object-cover"
+//               />
+//             ) : (
+//               <div className={cn(
+//                 "text-gray-400 font-medium",
+//                 pos.isCenter ? "text-sm" : "text-xs"
+//               )}>
+//                 {pos.index + 1}
+//               </div>
+//             )}
+//           </div>
+//         ))}
+//       </div>
+//     </div>
+//   );
+// };
+
+
 import React from 'react';
 import { Member } from '@/context/CollageContext';
 import { cn } from '@/lib/utils';
@@ -23,117 +158,91 @@ export const SquareGrid: React.FC<SquareGridProps> = ({
 
   const config = sizeConfig[size];
 
-  const generateSpiralPositions = () => {
-    if (memberCount === 0) return [];
+  // Dynamically calculate grid size
+  const gridSize = Math.ceil(Math.sqrt(memberCount));
 
-    // Calculate grid size needed to accommodate all members
-    const gridSize = Math.ceil(Math.sqrt(memberCount * 4)) + 2; // Extra space for center expansion
-    const center = Math.floor(gridSize / 2);
+  const cellStyle = (isCenter: boolean) => ({
+    width: isCenter ? config.center : config.regular,
+    height: isCenter ? config.center : config.regular,
+    borderRadius: '8px',
+  });
+
+  const generateGridPositions = () => {
+    const centerRow = Math.floor(gridSize / 2);
+    const centerCol = Math.floor(gridSize / 2);
+    let row = centerRow;
+    let col = centerCol;
+
+    const dx = [1, 0, -1, 0]; // right, down, left, up
+    const dy = [0, 1, 0, -1];
+    let direction = 0;
+    let steps = 1;
 
     const positions: {
+      index: number;
       member: Member | null;
       isCenter: boolean;
       row: number;
       col: number;
-      gridRow: number;
-      gridCol: number;
     }[] = [];
 
-    // Place center member first (always the first member if available)
+    let memberIndex = 0;
+
+    // Center
     positions.push({
-      member: members[0] || null,
+      index: 0,
+      member: members[memberIndex++] || null,
       isCenter: true,
-      row: center,
-      col: center,
-      gridRow: center + 1,
-      gridCol: center + 1,
+      row,
+      col,
     });
 
-    if (memberCount === 1) return positions;
-
-    // Spiral directions: right, down, left, up
-    const directions = [
-      { row: 0, col: 1 },  // right
-      { row: 1, col: 0 },  // down
-      { row: 0, col: -1 }, // left
-      { row: -1, col: 0 }, // up
-    ];
-
-    let currentRow = center;
-    let currentCol = center + 1; // Start one cell to the right of center
-    let directionIndex = 0;
-    let steps = 1;
-    let memberIndex = 1;
-
+    // Spiral placement
     while (memberIndex < memberCount) {
-      // Move in current direction for 'steps' number of times
-      for (let i = 0; i < steps && memberIndex < memberCount; i++) {
-        // Skip if this would overlap with center cell (2x2 area)
-        if (!(currentRow >= center && currentRow <= center && 
-              currentCol >= center && currentCol <= center)) {
-          
+      for (let turn = 0; turn < 2; turn++) {
+        for (let i = 0; i < steps; i++) {
+          row += dy[direction];
+          col += dx[direction];
+
+          if (memberIndex >= memberCount) break;
+
           positions.push({
-            member: members[memberIndex] || null,
+            index: memberIndex,
+            member: members[memberIndex++] || null,
             isCenter: false,
-            row: currentRow,
-            col: currentCol,
-            gridRow: currentRow + 1,
-            gridCol: currentCol + 1,
+            row,
+            col,
           });
-          memberIndex++;
         }
-
-        // Move to next position in current direction
-        if (memberIndex < memberCount) {
-          currentRow += directions[directionIndex].row;
-          currentCol += directions[directionIndex].col;
-        }
+        direction = (direction + 1) % 4;
       }
-
-      // Change direction (90-degree turn)
-      directionIndex = (directionIndex + 1) % 4;
-
-      // Increase steps every two direction changes (after completing right+down or left+up)
-      if (directionIndex % 2 === 0) {
-        steps++;
-      }
+      steps++;
     }
 
     return positions;
   };
 
-  const positions = generateSpiralPositions();
+  const positions = generateGridPositions();
 
-  if (positions.length === 0) {
-    return (
-      <div className={cn('flex items-center justify-center p-4 bg-pink-50', config.container)}>
-        <div className="text-gray-400 text-sm">No members to display</div>
-      </div>
-    );
-  }
+  const maxRow = Math.max(...positions.map(p => p.row));
+  const maxCol = Math.max(...positions.map(p => p.col));
+  const minRow = Math.min(...positions.map(p => p.row));
+  const minCol = Math.min(...positions.map(p => p.col));
 
-  // Calculate grid bounds
-  const rows = positions.map(p => p.row);
-  const cols = positions.map(p => p.col);
-  const minRow = Math.min(...rows);
-  const maxRow = Math.max(...rows);
-  const minCol = Math.min(...cols);
-  const maxCol = Math.max(...cols);
-
-  // Calculate grid dimensions and offsets
-  const gridRows = maxRow - minRow + 2; // +1 for center cell expansion
-  const gridCols = maxCol - minCol + 2; // +1 for center cell expansion
   const rowOffset = -minRow;
   const colOffset = -minCol;
 
+  const usedRows = maxRow - minRow + 1;
+  const usedCols = maxCol - minCol + 1;
+
   return (
-    <div className={cn('flex items-center justify-center p-4 bg-pink-50', config.container)}>
+    <div className={cn('flex items-center justify-center p-4 bg-pink-500', config.container)}>
       <div
         className="grid"
         style={{
           display: 'grid',
-          gridTemplateColumns: `repeat(${gridCols}, ${config.regular}px)`,
-          gridTemplateRows: `repeat(${gridRows}, ${config.regular}px)`,
+          gridTemplateColumns: `repeat(${usedCols}, ${config.regular}px)`,
+          gridTemplateRows: `repeat(${usedRows}, ${config.regular}px)`,
           gap: `${config.gap}px`,
           position: 'relative',
         }}
@@ -146,9 +255,7 @@ export const SquareGrid: React.FC<SquareGridProps> = ({
               pos.member ? 'border-purple-400 bg-purple-50' : 'border-gray-300 bg-gray-50'
             )}
             style={{
-              width: pos.isCenter ? config.center : config.regular,
-              height: pos.isCenter ? config.center : config.regular,
-              borderRadius: '8px',
+              ...cellStyle(pos.isCenter),
               gridRow: `${pos.row + rowOffset + 1} / span ${pos.isCenter ? 2 : 1}`,
               gridColumn: `${pos.col + colOffset + 1} / span ${pos.isCenter ? 2 : 1}`,
             }}
@@ -166,7 +273,7 @@ export const SquareGrid: React.FC<SquareGridProps> = ({
                   pos.isCenter ? 'text-sm' : 'text-xs'
                 )}
               >
-                {index + 1}
+                {pos.index + 1}
               </div>
             )}
           </div>
