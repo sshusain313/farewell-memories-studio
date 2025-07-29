@@ -236,7 +236,7 @@ export const SquareGrid: React.FC<SquareGridProps> = ({
   const usedCols = maxCol - minCol + 1;
 
   return (
-    <div className={cn('flex items-center justify-center p-4 bg-pink-50', config.container)}>
+    <div className={cn('flex items-center justify-center p-4 bg-pink-500', config.container)}>
       <div
         className="grid"
         style={{

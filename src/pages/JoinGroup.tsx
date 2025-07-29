@@ -256,7 +256,7 @@ const JoinGroup = () => {
                 </CardContent>
               </Card>
 
-              <Card className="shadow-xl border-0">
+              <Card className="shadow-xl border-0 relative">
                 <CardHeader>
                   <CardTitle>Grid Preview</CardTitle>
                   <CardDescription>Current winning template</CardDescription>
