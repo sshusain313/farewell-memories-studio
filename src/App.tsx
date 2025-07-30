@@ -13,6 +13,7 @@ import CreateGroup from "./pages/CreateGroup";
 import JoinGroup from "./pages/JoinGroup";
 import Dashboard from "./pages/Dashboard";
 import Editor from "./pages/Editor";
+import Checkout from "./pages/Checkout";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -52,6 +53,11 @@ const App = () => (
                 <ProtectedRoute>
                   <Editor />
                 </ProtectedRoute>
+              } />
+              <Route path="/checkout" element={
+                
+                  <Checkout />
+                
               } />
               <Route path="*" element={<NotFound />} />
             </Routes>

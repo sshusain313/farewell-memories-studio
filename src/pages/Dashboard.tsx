@@ -4,15 +4,19 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Users, Share, Eye, LogOut } from 'lucide-react';
+import { Award, TrendingUp, Users, Share, Eye, LogOut } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { useCollage } from '@/context/CollageContext';
+import { useCollage, Member } from '@/context/CollageContext';
+import {MemberDetailsModal} from '@/components/MemberDetailsModal';
+import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const { getGroup, getAllGroups, isLoading, groups } = useCollage();
   const navigate = useNavigate();
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null); 
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [group, setGroup] = useState<any>(null);
 
   // Update group data whenever user's groupId or groups change
@@ -24,7 +28,7 @@ const Dashboard = () => {
       }
     }
   }, [user?.groupId, getGroup, groups]); // Add groups as a dependency to re-run when any group updates
-
+  
   // Show loading state while context is initializing
   if (isLoading) {
     return (
@@ -54,6 +58,12 @@ const Dashboard = () => {
   const handleLogout = () => {
     logout();
     navigate('/auth');
+  };
+
+  
+  const handleMemberClick = (member: Member) => {
+    setSelectedMember(member);
+    setIsModalOpen(true);
   };
 
   if (!group) {
@@ -97,7 +107,7 @@ const Dashboard = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
+        {/* <div className="grid md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardContent className="pt-6 text-center">
               <Users className="h-8 w-8 mx-auto text-purple-600 mb-2" />
@@ -125,6 +135,47 @@ const Dashboard = () => {
                 {totalVotes}
               </p>
               <p className="text-sm text-gray-600">Total Votes</p>
+            </CardContent>
+          </Card>
+        </div> */}
+         <div className="grid md:grid-cols-4 gap-6 mb-8">
+          <Card className="shadow-lg border-0 bg-gradient-to-br from-blue-50 to-blue-100">
+            <CardContent className="pt-6 text-center">
+              <Users className="h-10 w-10 mx-auto text-blue-600 mb-3" />
+              <p className="text-3xl font-bold text-blue-800">{group.members.length}</p>
+              <p className="text-sm text-blue-700 mb-2">of {group.totalMembers} members</p>
+              <Progress value={completionPercentage} className="w-full h-2" />
+            </CardContent>
+          </Card>
+          
+          <Card className="shadow-lg border-0 bg-gradient-to-br from-green-50 to-green-100">
+            <CardContent className="pt-6 text-center">
+              <TrendingUp className="h-10 w-10 mx-auto text-green-600 mb-3" />
+              <p className="text-3xl font-bold text-green-800">{completionPercentage}%</p>
+              <p className="text-sm text-green-700">Complete</p>
+              <p className="text-xs text-green-600 mt-1">
+                {group.totalMembers - group.members.length} spots left
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card className="shadow-lg border-0 bg-gradient-to-br from-purple-50 to-purple-100">
+            <CardContent className="pt-6 text-center">
+              <Award className="h-10 w-10 mx-auto text-purple-600 mb-3" />
+              <Badge variant="secondary" className="mb-2 capitalize text-purple-800 bg-purple-200">
+                {winningTemplate}
+              </Badge>
+              <p className="text-sm text-purple-700">Winning Template</p>
+            </CardContent>
+          </Card>
+          
+          <Card className="shadow-lg border-0 bg-gradient-to-br from-orange-50 to-orange-100">
+            <CardContent className="pt-6 text-center">
+              <p className="text-3xl font-bold text-orange-800">{totalVotes}</p>
+              <p className="text-sm text-orange-700">Total Votes</p>
+              <p className="text-xs text-orange-600 mt-1">
+                {group.members.length > 0 ? `${Math.round((totalVotes / group.members.length) * 100)}% participation` : 'No votes yet'}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -173,12 +224,13 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3 max-h-64 overflow-y-auto">
-                {group.members.map((member: any, index: number) => (
+                {group.members.map((member: Member, index: number) => (
                   <div key={member.id} className="flex items-center space-x-3 p-2 rounded-lg bg-gray-50">
                     <img
                       src={member.photo}
                       alt={member.name}
-                      className="w-8 h-8 rounded-full object-cover"
+                      className="w-8 h-8 rounded-full object-cover cursor-pointer"
+                      onClick={() => handleMemberClick(member)}
                     />
                     <div className="flex-1">
                       <p className="font-medium text-sm">{member.name}</p>
@@ -220,6 +272,11 @@ const Dashboard = () => {
           </Card>
         </div>
       </div>
+      <MemberDetailsModal
+        member={selectedMember}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   );
 };
