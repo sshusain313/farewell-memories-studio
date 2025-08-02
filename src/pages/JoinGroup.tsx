@@ -11,6 +11,62 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { GridPreview } from "@/components/GridPreview";
 
+// Available square template numbers
+const AVAILABLE_SQUARE_TEMPLATES = [62, 72, 73, 121, 122, 123, 124, 125, 126, 127, 128];
+
+// Helper function to select the correct template number
+const getSquareTemplateNumber = (memberCount: number): number => {
+  if (AVAILABLE_SQUARE_TEMPLATES.includes(memberCount)) {
+    return memberCount;
+  }
+  // Return the minimum available number if the input doesn't match any template
+  return Math.min(...AVAILABLE_SQUARE_TEMPLATES);
+};
+
+// Helper function to calculate grid dimensions and center cell position
+const calculateGridLayout = (memberCount: number) => {
+  const templateNumber = getSquareTemplateNumber(memberCount);
+  const gridSize = Math.ceil(Math.sqrt(templateNumber));
+  const centerIndex = Math.floor(gridSize / 2);
+  
+  return {
+    gridSize,
+    centerRow: centerIndex,
+    centerCol: centerIndex,
+    cellSize: 100 / gridSize, // Percentage of grid size
+  };
+};
+
+// Helper function to create clip-path for center cell
+const createCenterCellClipPath = (memberCount: number) => {
+  const layout = calculateGridLayout(memberCount);
+  const left = layout.centerCol * layout.cellSize;
+  const top = layout.centerRow * layout.cellSize;
+  const right = (layout.centerCol + 1) * layout.cellSize;
+  const bottom = (layout.centerRow + 1) * layout.cellSize;
+  
+  return `polygon(${left}% ${top}%, ${right}% ${top}%, ${right}% ${bottom}%, ${left}% ${bottom}%)`;
+};
+
+// Helper function to create center cell positioning styles
+const createCenterCellStyles = (memberCount: number) => {
+  const layout = calculateGridLayout(memberCount);
+  const left = layout.centerCol * layout.cellSize;
+  const top = layout.centerRow * layout.cellSize;
+  const size = layout.cellSize;
+  
+  return {
+    left: `${left}%`,
+    top: `${top}%`,
+    width: `${size}%`,
+    height: `${size}%`,
+    // Ensure the image fills the entire cell
+    backgroundSize: '100% 100%',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+  };
+};
+
 const JoinGroup = () => {
   const { groupId } = useParams<{ groupId: string }>();
   const [memberData, setMemberData] = useState({
@@ -262,18 +318,56 @@ const JoinGroup = () => {
                   <CardDescription>Your selected template</CardDescription>
                 </CardHeader>
                 <CardContent className="flex justify-center">
-                  <GridPreview 
-                    template={memberData.vote}
-                    memberCount={group.totalMembers}
-                    members={memberData.photo ? [{
-                      id: 'preview',
-                      name: memberData.name || 'You',
-                      photo: memberData.photo,
-                      vote: memberData.vote,
-                      joinedAt: new Date()
-                    }] : []}
-                    size="medium"
-                  />
+                  {memberData.vote === "square" ? (
+                    <div className="relative">
+                      <img
+                        src={`/square/${getSquareTemplateNumber(group.totalMembers)}.png`}
+                        alt={`Square grid template for ${getSquareTemplateNumber(group.totalMembers)} members`}
+                        className="max-w-full max-h-full object-contain"
+                      />
+                      {memberData.photo && (
+                        <div 
+                          className="absolute"
+                          style={{
+                            ...createCenterCellStyles(group.totalMembers),
+                            overflow: 'hidden',
+                            border: 'none',
+                            outline: 'none',
+                          }}
+                        >
+                          <img
+                            src={memberData.photo}
+                            alt="Your photo in center cell"
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
+                              objectPosition: 'center',
+                              display: 'block',
+                              border: 'none',
+                              borderRadius: '0',
+                              outline: 'none',
+                              margin: '0',
+                              padding: '0',
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <GridPreview 
+                      template={memberData.vote}
+                      memberCount={group.totalMembers}
+                      members={memberData.photo ? [{
+                        id: 'preview',
+                        name: memberData.name || 'You',
+                        photo: memberData.photo,
+                        vote: memberData.vote,
+                        joinedAt: new Date()
+                      }] : []}
+                      size="medium"
+                    />
+                  )}
                 </CardContent>
               </Card>
             </div>

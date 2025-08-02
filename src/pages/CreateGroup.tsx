@@ -14,6 +14,18 @@ import { toast } from "sonner";
 import { GridPreview } from "@/components/GridPreview";
 import { ImageUpload } from "@/components/ImageUpload";
 
+// Available square template numbers
+const AVAILABLE_SQUARE_TEMPLATES = [62, 72, 73, 121, 122, 123, 124, 125, 126, 127, 128];
+
+// Helper function to select the correct template number
+const getSquareTemplateNumber = (memberCount: number): number => {
+  if (AVAILABLE_SQUARE_TEMPLATES.includes(memberCount)) {
+    return memberCount;
+  }
+  // Return the minimum available number if the input doesn't match any template
+  return Math.min(...AVAILABLE_SQUARE_TEMPLATES);
+};
+
 const CreateGroup = () => {
   const [formData, setFormData] = useState({
     name: "",
@@ -147,7 +159,7 @@ const CreateGroup = () => {
                     id="totalMembers"
                     type="number"
                     min="1"
-                    max="50"
+                    max="150"
                     placeholder="e.g., 20"
                     value={formData.totalMembers}
                     onChange={(e) => setFormData({ ...formData, totalMembers: e.target.value })}
@@ -220,11 +232,19 @@ const CreateGroup = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center justify-center min-h-[300px] bg-gradient-to-br from-gray-50 to-white rounded-xl p-4">
-                <GridPreview 
-                  template={formData.gridTemplate}
-                  memberCount={parseInt(formData.totalMembers) || 9}
-                  size="large"
-                />
+                {formData.gridTemplate === "square" ? (
+                  <img
+                    src={`/square/${getSquareTemplateNumber(parseInt(formData.totalMembers) || 62)}.png`}
+                    alt={`Square grid template for ${getSquareTemplateNumber(parseInt(formData.totalMembers) || 62)} members`}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                ) : (
+                  <GridPreview 
+                    template={formData.gridTemplate}
+                    memberCount={parseInt(formData.totalMembers) || 9}
+                    size="large"
+                  />
+                )}
               </div>
               
               {/* Preview customizations */}
