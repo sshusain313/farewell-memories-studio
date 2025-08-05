@@ -12,7 +12,7 @@ interface ImageUploadProps {
   label?: string;
 }
 
-export const ImageUpload: React.FC<ImageUploadProps> = ({
+const ImageUpload: React.FC<ImageUploadProps> = ({
   onImageChange,
   currentPreview,
   label = "Upload Image"
@@ -103,3 +103,5 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     </div>
   );
 };
+
+export default ImageUpload;

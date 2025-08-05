@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Award, TrendingUp, Users, Share, Eye, LogOut } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useCollage, Member } from '@/context/CollageContext';
-import {MemberDetailsModal} from '@/components/MemberDetailsModal';
+import { MemberDetailsModal } from '@/components/MemberDetailsModal';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 
@@ -21,10 +21,16 @@ const Dashboard = () => {
 
   // Update group data whenever user's groupId or groups change
   useEffect(() => {
+    console.log('Dashboard useEffect - user.groupId:', user?.groupId);
+    console.log('Dashboard useEffect - groups:', groups);
+    
     if (user?.groupId) {
       const userGroup = getGroup(user.groupId);
+      console.log('Dashboard useEffect - userGroup:', userGroup);
       if (userGroup) {
         setGroup(userGroup);
+      } else {
+        console.log('No group found for groupId:', user.groupId);
       }
     }
   }, [user?.groupId, getGroup, groups]); // Add groups as a dependency to re-run when any group updates
