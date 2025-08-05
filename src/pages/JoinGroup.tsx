@@ -18,6 +18,7 @@ const JoinGroup = () => {
     photo: "",
     vote: "square" as GridTemplate
   });
+  const [previewTemplate, setPreviewTemplate] = useState<GridTemplate>("square");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { getGroup, joinGroup, updateGroupTemplate, isLoading } = useCollage();
   const { updateUser } = useAuth();
@@ -28,6 +29,8 @@ const JoinGroup = () => {
   useEffect(() => {
     if (groupId && group) {
       updateGroupTemplate(groupId);
+      // Set preview template to match group's template
+      setPreviewTemplate(group.gridTemplate);
     }
   }, [group?.votes, groupId, updateGroupTemplate]);
 
@@ -256,20 +259,26 @@ const JoinGroup = () => {
                 </CardContent>
               </Card>
 
-              <Card className="shadow-xl border-0 relative">
-                <CardHeader>
-                  <CardTitle>Grid Preview</CardTitle>
-                  <CardDescription>Current winning template</CardDescription>
-                </CardHeader>
-                <CardContent className="flex justify-center">
-                  <GridPreview 
-                    template={group.gridTemplate}
-                    memberCount={group.totalMembers}
-                    members={group.members}
-                    size="medium"
-                  />
-                </CardContent>
-              </Card>
+                             <Card className="shadow-xl border-0 relative">
+                 <CardHeader>
+                   <CardTitle>Grid Preview</CardTitle>
+                   <CardDescription>Square grid layout with {group.totalMembers} members</CardDescription>
+                 </CardHeader>
+                 <CardContent className="flex justify-center">
+                   <GridPreview 
+                     template="square"
+                     memberCount={group.totalMembers}
+                     members={memberData.photo ? [{
+                       id: 'preview',
+                       name: memberData.name || 'You',
+                       photo: memberData.photo,
+                       vote: memberData.vote,
+                       joinedAt: new Date()
+                     }] : []}
+                     size="xlarge"
+                   />
+                 </CardContent>
+               </Card>
             </div>
           </div>
         )}

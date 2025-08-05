@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,59 +6,47 @@ import { ArrowLeft, Download, Users, Eye, Share } from "lucide-react";
 import { GridPreview } from "@/components/GridPreview";
 import { toast } from "sonner";
 import { GridTemplate } from "@/context/CollageContext";
+import { useCollage } from "@/context/CollageContext";
 import { useAuth } from "@/context/AuthContext";
-
-interface GroupInfo {
-  groupId: string;
-  groupName: string;
-  year: string;
-  totalMembers: number;
-  gridVotes: { hexagonal: number; square: number; circle: number };
-  members: Array<{
-    id: string;
-    name: string;
-    photo: string;
-    vote: GridTemplate;
-    joinedAt: Date;
-  }>;
-  isLeader: boolean;
-}
 
 const Editor = () => {
   const { groupId } = useParams<{ groupId?: string }>();
+  const { getGroup, isLoading, groups } = useCollage();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [groupInfo, setGroupInfo] = useState<GroupInfo | null>(null);
+  const [group, setGroup] = useState<any>(null);
 
+  // Update group data whenever groupId, user's groupId, or groups change
   useEffect(() => {
-    const savedGroupInfo = localStorage.getItem('groupInfo');
-    if (savedGroupInfo) {
-      try {
-        const parsed = JSON.parse(savedGroupInfo);
-        setGroupInfo(parsed);
-      } catch (error) {
-        console.error('Error parsing group info:', error);
+    const targetGroupId = groupId || user?.groupId;
+    
+    if (targetGroupId) {
+      const userGroup = getGroup(targetGroupId);
+      if (userGroup) {
+        setGroup(userGroup);
+      } else {
+        navigate('/dashboard');
       }
+    } else {
+      navigate('/dashboard');
     }
-  }, []);
+  }, [groupId, user?.groupId, getGroup, navigate, groups]); // Add groups as a dependency
 
-  if (!user?.isLeader) {
+  // Show loading state while context is initializing
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-yellow-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md text-center">
           <CardContent className="pt-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
-            <p className="text-gray-600 mb-6">This page is only accessible to group leaders.</p>
-            <Link to="/">
-              <Button>Go Home</Button>
-            </Link>
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Loading...</h1>
+            <p className="text-gray-600">Initializing application...</p>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  if (!groupInfo) {
+  if (!group) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-yellow-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md text-center">
@@ -72,7 +59,7 @@ const Editor = () => {
   }
 
   const getWinningTemplate = (votes: { hexagonal: number; square: number; circle: number }) => {
-    return Object.entries(votes).sort((a, b) => (b[1] as number) - (a[1] as number))[0][0] as GridTemplate;
+    return Object.entries(votes).sort((a, b) => (b[1] as number) - (a[1] as number))[0][0] as 'hexagonal' | 'square' | 'circle';
   };
 
   const handleDownload = () => {
@@ -80,17 +67,17 @@ const Editor = () => {
   };
 
   const handleShare = () => {
-    const shareLink = `${window.location.origin}/join/${groupInfo.groupId}`;
+    const shareLink = `${window.location.origin}/join/${group.id}`;
     navigator.clipboard.writeText(shareLink);
     toast.success("Share link copied to clipboard!");
   };
 
-  const completionPercentage = Math.round((groupInfo.members.length / groupInfo.totalMembers) * 100);
-  const winningTemplate = getWinningTemplate(groupInfo.gridVotes);
+  const completionPercentage = Math.round((group.members.length / group.totalMembers) * 100);
+  const winningTemplate = getWinningTemplate(group.votes);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-yellow-50 p-4">
-      <div className="container mx-auto max-w-6xl">
+      <div className="container mx-auto max-w-7xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center">
@@ -101,8 +88,8 @@ const Editor = () => {
               </Button>
             </Link>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{groupInfo.groupName}</h1>
-              <p className="text-gray-600">Class of {groupInfo.year} • {winningTemplate} grid</p>
+              <h1 className="text-3xl font-bold text-gray-900">{group.name}</h1>
+              <p className="text-gray-600">Class of {group.yearOfPassing} • {winningTemplate} grid</p>
             </div>
           </div>
           <div className="flex space-x-2">
@@ -134,7 +121,7 @@ const Editor = () => {
               />
             </div>
             <p className="text-sm text-gray-600 mt-2">
-              {groupInfo.members.length} of {groupInfo.totalMembers} members have joined
+              {group.members.length} of {group.totalMembers} members have joined
             </p>
           </CardContent>
         </Card>
@@ -156,11 +143,11 @@ const Editor = () => {
                 <div className="relative">
                   <GridPreview 
                     template={winningTemplate}
-                    memberCount={groupInfo.totalMembers}
-                    members={groupInfo.members}
+                    memberCount={group.totalMembers}
+                    members={group.members}
                     size="xlarge"
                   />
-                  {groupInfo.members.length === 0 && (
+                  {group.members.length === 0 && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="text-center">
                         <p className="text-gray-500 mb-2">Waiting for members to join...</p>
@@ -181,10 +168,10 @@ const Editor = () => {
             {/* Member List */}
             <Card className="shadow-lg border-0">
               <CardHeader>
-                <CardTitle>Members ({groupInfo.members.length}/{groupInfo.totalMembers})</CardTitle>
+                <CardTitle>Members ({group.members.length}/{group.totalMembers})</CardTitle>
               </CardHeader>
               <CardContent>
-                {groupInfo.members.length === 0 ? (
+                {group.members.length === 0 ? (
                   <div className="text-center py-6">
                     <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                     <p className="text-gray-500">No members yet</p>
@@ -194,7 +181,7 @@ const Editor = () => {
                   </div>
                 ) : (
                   <div className="space-y-3 max-h-80 overflow-y-auto">
-                    {groupInfo.members.map((member, index) => (
+                    {group.members.map((member: any, index: number) => (
                       <div key={member.id} className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50">
                         <div className="relative">
                           <img
@@ -236,14 +223,14 @@ const Editor = () => {
                                 : 'bg-gray-400'
                             }`}
                             style={{ 
-                              width: groupInfo.members.length > 0 
-                                ? `${(groupInfo.gridVotes[template] / groupInfo.members.length) * 100}%` 
+                              width: group.members.length > 0 
+                                ? `${(group.votes[template] / group.members.length) * 100}%` 
                                 : '0%' 
                             }}
                           />
                         </div>
                         <span className="text-sm font-medium text-gray-600">
-                          {groupInfo.gridVotes[template]}
+                          {group.votes[template]}
                         </span>
                       </div>
                     </div>
