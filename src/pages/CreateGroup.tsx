@@ -12,7 +12,7 @@ import { useCollage, GridTemplate } from "@/context/CollageContext";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { GridPreview } from "@/components/GridPreview";
-import { ImageUpload } from "@/components/ImageUpload";
+import ImageUpload from "@/components/ImageUpload";
 
 // Available square template numbers
 const AVAILABLE_SQUARE_TEMPLATES = [62, 72, 73, 121, 122, 123, 124, 125, 126, 127, 128];
