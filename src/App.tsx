@@ -9,7 +9,8 @@ import { CollageProvider } from "./context/CollageContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import CreateGroup from "./pages/CreateGroup";
+// import CreateGroup from "./pages/CreateGroup";
+import GridBoard from "./components/GridBoard";
 import JoinGroup from "./pages/JoinGroup";
 import Dashboard from "./pages/Dashboard";
 import Editor from "./pages/Editor";
@@ -31,7 +32,7 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/create-group" element={
                 <ProtectedRoute>
-                  <CreateGroup />
+                  <GridBoard />
                 </ProtectedRoute>
               } />
               <Route path="/join/:groupId" element={

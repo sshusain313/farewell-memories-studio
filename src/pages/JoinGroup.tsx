@@ -9,7 +9,7 @@ import { ArrowLeft, Upload, Users, Calendar, Vote } from "lucide-react";
 import { useCollage, GridTemplate } from "@/context/CollageContext";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import { GridPreview } from "@/components/GridPreview";
+// import { GridPreview } from "@/components/GridPreview";
 
 const JoinGroup = () => {
   const { groupId } = useParams<{ groupId: string }>();
@@ -265,7 +265,7 @@ const JoinGroup = () => {
                    <CardDescription>Square grid layout with {group.totalMembers} members</CardDescription>
                  </CardHeader>
                  <CardContent className="flex justify-center">
-                   <GridPreview 
+                   {/* <GridPreview 
                      template="square"
                      memberCount={group.totalMembers}
                      members={memberData.photo ? [{
@@ -276,7 +276,7 @@ const JoinGroup = () => {
                        joinedAt: new Date()
                      }] : []}
                      size="xlarge"
-                   />
+                   /> */}
                  </CardContent>
                </Card>
             </div>

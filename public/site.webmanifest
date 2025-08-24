@@ -1,0 +1,32 @@
+{
+  "name": "Signature Day - Group Photo Collage",
+  "short_name": "Signature Day",
+  "description": "Create beautiful group photo collages for farewell t-shirts and memories",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#faf5ff",
+  "theme_color": "#9333ea",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/placeholder.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/placeholder.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["photo", "social", "utilities"],
+  "lang": "en",
+  "dir": "ltr"
+} 

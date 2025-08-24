@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Download, Users, Eye, Share } from "lucide-react";
-import { GridPreview } from "@/components/GridPreview";
+// import { GridPreview } from "@/components/GridPreview";
 import { toast } from "sonner";
 import { GridTemplate } from "@/context/CollageContext";
 import { useCollage } from "@/context/CollageContext";
@@ -141,12 +141,12 @@ const Editor = () => {
               </CardHeader>
               <CardContent className="flex justify-center p-8">
                 <div className="relative">
-                  <GridPreview 
+                  {/* <GridPreview 
                     template={winningTemplate}
                     memberCount={group.totalMembers}
                     members={group.members}
                     size="xlarge"
-                  />
+                  /> */}
                   {group.members.length === 0 && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="text-center">

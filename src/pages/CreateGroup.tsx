@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useRef, Suspense, lazy, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,20 +13,67 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { GridPreview } from "@/components/GridPreview";
 import ImageUpload from "@/components/ImageUpload";
+import { GridProvider } from "@/components/square/context/GridContext";
+import "./grid.css";
 
-// Available square template numbers
-const AVAILABLE_SQUARE_TEMPLATES = [62, 72, 73, 121, 122, 123, 124, 125, 126, 127, 128];
+// Available square template numbers (all available templates from 34 to 128)
+const AVAILABLE_SQUARE_TEMPLATES = Array.from({ length: 95 }, (_, i) => i + 34);
 
 // Helper function to select the correct template number
 const getSquareTemplateNumber = (memberCount: number): number => {
   if (AVAILABLE_SQUARE_TEMPLATES.includes(memberCount)) {
     return memberCount;
   }
-  // Return the minimum available number if the input doesn't match any template
-  return Math.min(...AVAILABLE_SQUARE_TEMPLATES);
+  // Find the closest available template number
+  const closest = AVAILABLE_SQUARE_TEMPLATES.reduce((prev, curr) => {
+    return Math.abs(curr - memberCount) < Math.abs(prev - memberCount) ? curr : prev;
+  });
+  return closest;
 };
 
+interface CellImage {
+  [key: string]: string;
+}
+
 const CreateGroup = () => {
+
+  const [cellImages, setCellImages] = useState<CellImage>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedCell, setSelectedCell] = useState<string | null>(null);
+  const [numberInput, setNumberInput] = useState<string>("");
+  const [PreviewComp, setPreviewComp] = useState<React.LazyExoticComponent<React.ComponentType> | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  // Add responsive breakpoint check for desktop
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const handler = (e: MediaQueryListEvent | MediaQueryList) => {
+      const matches = 'matches' in e ? e.matches : (e as MediaQueryList).matches;
+      setIsDesktop(matches);
+    };
+    setIsDesktop(mq.matches);
+    mq.addEventListener('change', handler as (e: MediaQueryListEvent) => void);
+    return () => mq.removeEventListener('change', handler as (e: MediaQueryListEvent) => void);
+  }, []);
+
+  // Add event listener for grid template download
+  useEffect(() => {
+    const handleDownload = () => {
+      console.log('Download requested');
+      // Handle download if needed
+    };
+
+    window.addEventListener('grid-template-download', handleDownload);
+    return () => window.removeEventListener('grid-template-download', handleDownload);
+  }, []);
+
+  // Map of all TSX components in this folder
+  // We will look for files like "33.tsx", "37.tsx", or any "n.tsx"
+  // Import all numeric-named components from the square directory
+  const componentModules = import.meta.glob('@/components/square/[0-9]*.tsx', { eager: true });
+
+
   const [formData, setFormData] = useState({
     name: "",
     yearOfPassing: "",
@@ -92,13 +139,55 @@ const CreateGroup = () => {
     }
   };
 
+  const loadComponentByNumber = async (n: number) => {
+    setLoadError(null);
+    setPreviewComp(null);
+
+    console.log('Loading component number:', n);
+    console.log('Available modules:', Object.keys(componentModules));
+
+    // Only allow files with numeric names like 33.tsx, 37.tsx, etc.
+    if (!/^[0-9]+$/.test(String(n))) {
+      setLoadError('Please enter a valid number.');
+      return;
+    }
+
+    const matchingPath = Object.keys(componentModules).find(p => p.includes(`/${n}.tsx`));
+    console.log('Found matching path:', matchingPath);
+
+    if (matchingPath) {
+      try {
+        const module = componentModules[matchingPath] as { default: React.ComponentType<any> };
+        const LazyComp = lazy(() => Promise.resolve(module));
+        console.log('Component loaded successfully');
+        setPreviewComp(() => LazyComp);
+      } catch (error) {
+        console.error('Error loading component:', error);
+        setLoadError(`Error loading component ${n}.tsx`);
+      }
+    } else {
+      console.warn(`Component ${n}.tsx not found in available modules`);
+      setLoadError(`Component ${n}.tsx not found in src/components/square.`);
+    }
+  };
+
+  const handlePreviewSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const n = Number(numberInput);
+    if (Number.isNaN(n)) {
+      setLoadError('Enter a valid number.');
+      return;
+    }
+    loadComponentByNumber(n);
+  };
+
   const isValidForm = formData.name && formData.yearOfPassing && formData.totalMembers && parseInt(formData.totalMembers) > 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-yellow-50 p-4">
-      <div className="container mx-auto max-w-5xl">
+    <div className="min-h-screen max-w-8xl mx-auto bg-gradient-to-br from-slate-50 to-slate-100 p-3 sm:p-4 md:p-6">
+      <div className="grid gap-2 lg:grid lg:grid-cols-2">
         {/* Header */}
-        <div className="flex items-center mb-8">
+        {/* <div className="flex items-center mb-8">
           <Link to="/">
             <Button variant="ghost" size="sm" className="mr-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -106,22 +195,14 @@ const CreateGroup = () => {
             </Button>
           </Link>
           <h1 className="text-3xl font-bold text-gray-900">Create Your Group</h1>
-        </div>
+        </div> */}
 
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Form */}
-          <Card className="shadow-xl border-0">
-            <CardHeader>
-              <CardTitle className="flex items-center text-2xl">
-                <Users className="mr-2 h-6 w-6 text-purple-600" />
-                Group Details
-              </CardTitle>
-              <CardDescription>
-                Fill in your group information to get started with your farewell T-shirt design.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
+        <Card className="w-1/2 lg:max-w-xl lg:h-[75vh]">
+        <CardHeader>
+          <CardTitle className="text-lg">Component Preview Loader</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handlePreviewSubmit} className="grid grid-cols-1 sm:grid-cols-[220px_1fr_auto] items-end gap-3">
                 <div className="space-y-2">
                   <Label htmlFor="groupName" className="flex items-center">
                     <Users className="mr-2 h-4 w-4" />
@@ -156,15 +237,19 @@ const CreateGroup = () => {
                     Total Number of Members
                   </Label>
                   <Input
-                    id="totalMembers"
+                    id="preview-number"
                     type="number"
-                    min="1"
-                    max="150"
-                    placeholder="e.g., 20"
+                    inputMode="numeric"
                     value={formData.totalMembers}
-                    onChange={(e) => setFormData({ ...formData, totalMembers: e.target.value })}
-                    required
-                  />
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData({ ...formData, totalMembers: value });
+                      if (value && !isNaN(parseInt(value))) {
+                        loadComponentByNumber(getSquareTemplateNumber(parseInt(value)));
+                      }
+                    }}
+                    placeholder="e.g. 33 or 37"
+              />
                 </div>
 
                 {/* Logo Upload */}
@@ -173,43 +258,6 @@ const CreateGroup = () => {
                   currentPreview={formData.logoPreview}
                   label="Group Logo (Optional)"
                 />
-
-                {/* Custom Text */}
-                {/* <div className="space-y-2">
-                  <Label htmlFor="customText" className="flex items-center">
-                    <Type className="mr-2 h-4 w-4" />
-                    Custom Text (Optional)
-                  </Label>
-                  <Textarea
-                    id="customText"
-                    placeholder="e.g., Forever Friends, Class of 2024, etc."
-                    value={formData.customText}
-                    onChange={(e) => setFormData({ ...formData, customText: e.target.value })}
-                    rows={3}
-                  />
-                  <p className="text-xs text-gray-500">This text will appear on your t-shirt design</p>
-                </div> */}
-
-                <div className="space-y-4">
-                  <Label className="flex items-center">
-                    <Layout className="mr-2 h-4 w-4" />
-                    Grid Template
-                  </Label>
-                  <RadioGroup
-                    value={formData.gridTemplate}
-                    onValueChange={(value: GridTemplate) => setFormData({ ...formData, gridTemplate: value })}
-                    className="grid grid-cols-3 gap-4"
-                  >
-                    {(['square', 'hexagonal', 'circle'] as GridTemplate[]).map((template) => (
-                      <div key={template} className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-gray-50">
-                        <RadioGroupItem value={template} id={template} />
-                        <Label htmlFor={template} className="capitalize cursor-pointer">
-                          {template}
-                        </Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
-                </div>
 
                 <Button 
                   type="submit" 
@@ -220,56 +268,37 @@ const CreateGroup = () => {
                 </Button>
               </form>
             </CardContent>
-          </Card>
-
-          {/* Enhanced Preview */}
-          <Card className="shadow-xl border-0">
-            <CardHeader>
-              <CardTitle className="text-2xl">Live Preview</CardTitle>
-              <CardDescription>
-                See how your selected grid template will look
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-center min-h-[300px] bg-gradient-to-br from-gray-50 to-white rounded-xl p-4">
-                {formData.gridTemplate === "square" ? (
-                  <img
-                    src={`/square/${getSquareTemplateNumber(parseInt(formData.totalMembers) || 62)}.png`}
-                    alt={`Square grid template for ${getSquareTemplateNumber(parseInt(formData.totalMembers) || 62)} members`}
-                    className="max-w-full max-h-full object-contain"
-                  />
-                ) : (
-                  <GridPreview 
-                    template={formData.gridTemplate}
-                    memberCount={parseInt(formData.totalMembers) || 9}
-                    size="large"
-                  />
-                )}
+      </Card>
+          
+      {/* Preview Area */}
+      <div className="lg:max-w-3xl mt-4 lg:mt-0">
+        {PreviewComp ? (
+          <Card className="-ml-4 sm:ml-0">
+            <CardContent className="p-0">
+              {/* Preview actions */}
+              <div className="flex justify-end p-2">
+                <Button size="sm" onClick={() => window.dispatchEvent(new Event('grid-template-download'))}>
+                  Download
+                </Button>
               </div>
-              
-              {/* Preview customizations */}
-              {formData.logoPreview && (
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <p className="text-sm text-purple-700 mb-2">Logo Preview:</p>
-                  <img 
-                    src={formData.logoPreview} 
-                    alt="Logo preview" 
-                    className="h-16 w-16 object-cover rounded-lg mx-auto border-2 border-purple-200"
-                  />
-                </div>
-              )}
-              
-              {formData.customText && (
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-700 mb-2">Custom Text:</p>
-                  <p className="font-semibold text-blue-800">"{formData.customText}"</p>
-                </div>
-              )}
+              <Suspense fallback={<div className="p-6 text-sm text-slate-600">Loading preview...</div>}>
+                <GridProvider>
+                  <PreviewComp />
+                </GridProvider>
+              </Suspense>
             </CardContent>
           </Card>
+        ) : (
+          <Card>
+            <CardContent className="p-6 text-sm text-slate-500 text-center">
+              Enter a number to preview a component (e.g. 33 or 37) from src/components/square.
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
         </div>
       </div>
-    </div>
   );
 };
 
