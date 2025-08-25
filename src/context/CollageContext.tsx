@@ -34,15 +34,24 @@ interface CollageContextType {
   deleteGroup: (groupId: string) => void;
   updateGroup: (groupId: string, updates: Partial<Group>) => void;
   isLoading: boolean;
+  isInitialized: boolean;
 }
 
-const CollageContext = createContext<CollageContextType | undefined>(undefined);
+const CollageContext = createContext<CollageContextType>({
+  groups: {},
+  createGroup: () => '',
+  joinGroup: () => false,
+  getGroup: () => undefined,
+  updateGroupTemplate: () => {},
+  getAllGroups: () => [],
+  deleteGroup: () => {},
+  updateGroup: () => {},
+  isLoading: true,
+  isInitialized: false
+});
 
 export const useCollage = () => {
   const context = useContext(CollageContext);
-  if (!context) {
-    throw new Error('useCollage must be used within a CollageProvider');
-  }
   return context;
 };
 
@@ -51,10 +60,14 @@ export const CollageProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  console.log('CollageProvider: Initializing...', { isInitialized, isLoading, groupsCount: Object.keys(groups).length });
+
   // Initialize groups from localStorage on mount
   useEffect(() => {
+    console.log('CollageProvider: useEffect for initialization running');
     try {
       const savedGroups = LocalStorageService.loadGroups();
+      console.log('CollageProvider: Loaded groups from localStorage:', Object.keys(savedGroups).length);
       setGroups(savedGroups);
       setIsInitialized(true);
     } catch (error) {
@@ -62,17 +75,21 @@ export const CollageProvider: React.FC<{ children: ReactNode }> = ({ children })
       setIsInitialized(true);
     } finally {
       setIsLoading(false);
+      console.log('CollageProvider: Initialization complete');
     }
   }, []);
 
   // Save groups to localStorage whenever groups change
   useEffect(() => {
-    if (isInitialized && !isLoading) {
-      try {
-        LocalStorageService.saveGroups(groups);
-      } catch (error) {
-        console.error('Error saving groups to localStorage:', error);
-      }
+    if (isInitialized && !isLoading && Object.keys(groups).length > 0) {
+      const saveGroupsAsync = async () => {
+        try {
+          await LocalStorageService.saveGroups(groups);
+        } catch (error) {
+          console.error('Error saving groups to localStorage:', error);
+        }
+      };
+      saveGroupsAsync();
     }
   }, [groups, isInitialized, isLoading]);
 
@@ -184,7 +201,8 @@ export const CollageProvider: React.FC<{ children: ReactNode }> = ({ children })
       getAllGroups,
       deleteGroup,
       updateGroup,
-      isLoading
+      isLoading,
+      isInitialized
     }}>
       {children}
     </CollageContext.Provider>

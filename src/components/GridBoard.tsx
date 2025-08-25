@@ -8,6 +8,9 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Separator } from './ui/separator';
 import { GridProvider } from './square/context/GridContext';
+import { Link, useNavigate } from "react-router-dom";
+import { useCollage, GridTemplate } from '../context/CollageContext';
+import { useAuth } from '../context/AuthContext';
 
 interface CellImage {
   [key: string]: string;
@@ -17,7 +20,7 @@ const GridBoard = () => {
   const [cellImages, setCellImages] = useState<CellImage>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedCell, setSelectedCell] = useState<string | null>(null);
-  const [numberInput, setNumberInput] = useState<string>("");
+  const [totalMembers, setTotalMembers] = useState<string>("");
   const [PreviewComp, setPreviewComp] = useState<React.LazyExoticComponent<React.ComponentType> | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -25,11 +28,15 @@ const GridBoard = () => {
     name: "",
     yearOfPassing: "",
     totalMembers: "",
-    // gridTemplate: "square" as GridTemplate,
+    gridTemplate: "square" as GridTemplate,
     logoFile: null as File | null,
     logoPreview: "",
     customText: ""
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { createGroup, isLoading } = useCollage();
+  const { user, updateUser } = useAuth();
+  const navigate = useNavigate();
 
   // Map of all TSX components in this folder
   // We will look for files like "33.tsx", "37.tsx", or any "n.tsx"
@@ -138,14 +145,46 @@ const GridBoard = () => {
     }
   };
 
+  // const handlePreviewSubmit = (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   const n = Number(numberInput);
+  //   if (Number.isNaN(n)) {
+  //     setLoadError('Enter a valid number.');
+  //     return;
+  //   }
+  //   loadComponentByNumber(n);
+  // };
+
   const handlePreviewSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const n = Number(numberInput);
+    const n = Number(totalMembers);
     if (Number.isNaN(n)) {
       setLoadError('Enter a valid number.');
       return;
     }
     loadComponentByNumber(n);
+  };
+
+  const handleNumberInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setTotalMembers(value);
+
+    // Update formData.totalMembers as well
+    setFormData(prev => ({ ...prev, totalMembers: value }));
+    
+    // Auto-load component when typing
+    if (value.trim()) {
+      const n = Number(value);
+      if (!Number.isNaN(n) && n > 0) {
+        loadComponentByNumber(n);
+      } else {
+        setPreviewComp(null);
+        setLoadError(null);
+      }
+    } else {
+      setPreviewComp(null);
+      setLoadError(null);
+    }
   };
 
   
@@ -189,25 +228,26 @@ const isValidForm = formData.name && formData.yearOfPassing && formData.totalMem
                     required
                   />
             </div>
-            
+
             <div className="space-y-1">
-              <Label htmlFor="preview-number">Component number</Label>
+              <Label htmlFor="preview-number">Total Members</Label>
               <Input
                 id="preview-number"
                 type="number"
                 inputMode="numeric"
-                value={numberInput}
-                onChange={(e) => setNumberInput(e.target.value)}
+                value={totalMembers}
+                onChange={handleNumberInputChange}
                 placeholder="e.g. 33 or 37"
               />
             </div>
+
             {/* <div className="text-xs text-slate-500 sm:self-center">
               Enter a number to load a file named <code className="px-1 py-0.5 rounded bg-slate-100">{`{n}`}.tsx</code> from <code className="px-1 py-0.5 rounded bg-slate-100">src/components</code>.
             </div> */}
             <Button type="submit" className="sm:justify-self-end">Load</Button>
 
             <Button
-                  onClick={handleSubmit()} 
+                  onClick={handleSubmit} 
                   // type="submit" 
                   className="w-full bg-purple-600 hover:bg-purple-700"
                   // disabled={!isValidForm || isSubmitting}
@@ -278,5 +318,6 @@ const isValidForm = formData.name && formData.yearOfPassing && formData.totalMem
     </div>
   );
 };
+
 
 export default GridBoard;

@@ -231,6 +231,27 @@ const CreateGroup = () => {
                   />
                 </div>
 
+                {/* <div className="space-y-2">
+                  <Label htmlFor="totalMembers" className="flex items-center">
+                    <Hash className="mr-2 h-4 w-4" />
+                    Total Number of Members
+                  </Label>
+                  <Input
+                    id="preview-number"
+                    type="number"
+                    inputMode="numeric"
+                    value={formData.totalMembers}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData({ ...formData, totalMembers: value });
+                      if (value && !isNaN(parseInt(value))) {
+                        loadComponentByNumber(getSquareTemplateNumber(parseInt(value)));
+                      }
+                    }}
+                    placeholder="e.g. 33 or 37"
+              />
+                </div> */}
+
                 <div className="space-y-2">
                   <Label htmlFor="totalMembers" className="flex items-center">
                     <Hash className="mr-2 h-4 w-4" />

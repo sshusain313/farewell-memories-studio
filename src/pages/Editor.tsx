@@ -3,11 +3,12 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Download, Users, Eye, Share } from "lucide-react";
-// import { GridPreview } from "@/components/GridPreview";
+import { GridPreview } from "@/components/GridPreview";
 import { toast } from "sonner";
 import { GridTemplate } from "@/context/CollageContext";
 import { useCollage } from "@/context/CollageContext";
 import { useAuth } from "@/context/AuthContext";
+
 
 const Editor = () => {
   const { groupId } = useParams<{ groupId?: string }>();
@@ -134,19 +135,20 @@ const Editor = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-2xl">Live Collage Preview</CardTitle>
-                    <CardDescription>Your T-shirt design updates in real-time</CardDescription>
+                    <CardDescription>Grid template: {group.totalMembers} members • {group.gridTemplate} layout</CardDescription>
                   </div>
                   <Eye className="h-6 w-6 text-purple-600" />
                 </div>
               </CardHeader>
               <CardContent className="flex justify-center p-8">
                 <div className="relative">
-                  {/* <GridPreview 
-                    template={winningTemplate}
+                  <GridPreview 
+                    key={`${group.id}-${group.members.length}`}
+                    template={group.gridTemplate}
                     memberCount={group.totalMembers}
                     members={group.members}
-                    size="xlarge"
-                  /> */}
+                    size="large"
+                  />
                   {group.members.length === 0 && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="text-center">

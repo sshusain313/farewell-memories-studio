@@ -230,21 +230,50 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3 max-h-64 overflow-y-auto">
-                {group.members.map((member: Member, index: number) => (
-                  <div key={member.id} className="flex items-center space-x-3 p-2 rounded-lg bg-gray-50">
-                    <img
-                      src={member.photo}
-                      alt={member.name}
-                      className="w-8 h-8 rounded-full object-cover cursor-pointer"
-                      onClick={() => handleMemberClick(member)}
-                    />
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{member.name}</p>
-                      <p className="text-xs text-gray-600">Voted: {member.vote}</p>
+                {group.members.map((member: Member, index: number) => {
+                  console.log(`Member ${member.name} photo:`, {
+                    hasPhoto: !!member.photo,
+                    photoLength: member.photo?.length || 0,
+                    photoStart: member.photo?.substring(0, 50) || 'none',
+                    photoEnd: member.photo?.substring(-50) || 'none'
+                  });
+                  
+                  return (
+                    <div key={member.id} className="flex items-center space-x-3 p-2 rounded-lg bg-gray-50">
+                      <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                        {member.photo ? (
+                          <img
+                            src={member.photo}
+                            alt={member.name}
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={() => handleMemberClick(member)}
+                            onError={(e) => {
+                              console.error(`Failed to load image for ${member.name}:`, e);
+                              // Hide the broken image and show fallback
+                              (e.target as HTMLImageElement).style.display = 'none';
+                              const fallback = (e.target as HTMLImageElement).nextElementSibling;
+                              if (fallback) {
+                                (fallback as HTMLElement).style.display = 'flex';
+                              }
+                            }}
+                          />
+                        ) : null}
+                        {/* Fallback avatar */}
+                        <div 
+                          className={`w-full h-full flex items-center justify-center text-gray-600 text-xs font-medium ${member.photo ? 'hidden' : 'flex'}`}
+                          onClick={() => handleMemberClick(member)}
+                        >
+                          {member.name.charAt(0).toUpperCase()}
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{member.name}</p>
+                        <p className="text-xs text-gray-600">Voted: {member.vote}</p>
+                      </div>
+                      <Badge variant="outline" className="text-xs">#{index + 1}</Badge>
                     </div>
-                    <Badge variant="outline" className="text-xs">#{index + 1}</Badge>
-                  </div>
-                ))}
+                  );
+                })}
                 {group.members.length === 0 && (
                   <p className="text-gray-500 text-center py-4">No members have joined yet</p>
                 )}

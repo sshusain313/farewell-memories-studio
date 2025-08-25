@@ -9,7 +9,7 @@ import { ArrowLeft, Upload, Users, Calendar, Vote } from "lucide-react";
 import { useCollage, GridTemplate } from "@/context/CollageContext";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-// import { GridPreview } from "@/components/GridPreview";
+import { GridPreview } from "@/components/GridPreview";
 
 const JoinGroup = () => {
   const { groupId } = useParams<{ groupId: string }>();
@@ -103,7 +103,7 @@ const JoinGroup = () => {
   const remainingSpots = group.totalMembers - group.members.length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-yellow-50 p-4">
+    <div className="min-h-screen max-w-8xl mx-auto bg-gradient-to-br from-slate-50 to-slate-100 p-3 sm:p-4 md:p-6">
       <div className="container mx-auto max-w-4xl">
         {/* Header */}
         <div className="flex items-center mb-8">
@@ -259,24 +259,25 @@ const JoinGroup = () => {
                 </CardContent>
               </Card>
 
-                             <Card className="shadow-xl border-0 relative">
+              <Card className="shadow-xl border-0 relative">
                  <CardHeader>
                    <CardTitle>Grid Preview</CardTitle>
-                   <CardDescription>Square grid layout with {group.totalMembers} members</CardDescription>
+                   <CardDescription>{group.gridTemplate}</CardDescription>
                  </CardHeader>
                  <CardContent className="flex justify-center">
-                   {/* <GridPreview 
-                     template="square"
+                   <GridPreview 
+                     template={group.gridTemplate}
                      memberCount={group.totalMembers}
-                     members={memberData.photo ? [{
+                     members={group.members}
+                     activeMember={memberData.photo ? {
                        id: 'preview',
                        name: memberData.name || 'You',
                        photo: memberData.photo,
                        vote: memberData.vote,
                        joinedAt: new Date()
-                     }] : []}
+                     } : undefined}
                      size="xlarge"
-                   /> */}
+                   />
                  </CardContent>
                </Card>
             </div>

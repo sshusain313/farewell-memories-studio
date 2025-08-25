@@ -16,10 +16,10 @@ export class LocalStorageService {
   };
 
   // Groups management
-  static saveGroups(groups: Record<string, any>): void {
+  static async saveGroups(groups: Record<string, any>): Promise<void> {
     try {
       // Optimize data before saving
-      const optimizedGroups = this.optimizeGroupsData(groups);
+      const optimizedGroups = await this.optimizeGroupsData(groups);
       const dataString = JSON.stringify(optimizedGroups);
       
       // Check if data is too large
@@ -27,7 +27,7 @@ export class LocalStorageService {
         console.warn('Groups data is too large, clearing old data...');
         this.clearOldGroups();
         // Try again with cleaned data
-        const cleanedGroups = this.optimizeGroupsData(groups);
+        const cleanedGroups = await this.optimizeGroupsData(groups);
         localStorage.setItem(this.STORAGE_KEYS.GROUPS, JSON.stringify(cleanedGroups));
       } else {
         localStorage.setItem(this.STORAGE_KEYS.GROUPS, dataString);
@@ -37,7 +37,7 @@ export class LocalStorageService {
       // If still failing, try to clear and save minimal data
       try {
         this.clearOldGroups();
-        const minimalGroups = this.optimizeGroupsData(groups);
+        const minimalGroups = await this.optimizeGroupsData(groups);
         localStorage.setItem(this.STORAGE_KEYS.GROUPS, JSON.stringify(minimalGroups));
       } catch (retryError) {
         console.error('Failed to save groups even after cleanup:', retryError);
@@ -45,31 +45,87 @@ export class LocalStorageService {
     }
   }
 
-  private static optimizeGroupsData(groups: Record<string, any>): Record<string, any> {
+  private static async optimizeGroupsData(groups: Record<string, any>): Promise<Record<string, any>> {
     const optimized: Record<string, any> = {};
     
-    Object.keys(groups).forEach(groupId => {
+    for (const groupId of Object.keys(groups)) {
       const group = groups[groupId];
+      const optimizedMembers = [];
+      
+      // Process members sequentially to avoid overwhelming the system
+      for (const member of group.members || []) {
+        const optimizedMember = {
+          ...member,
+          photo: await this.compressPhotoData(member.photo)
+        };
+        optimizedMembers.push(optimizedMember);
+      }
+      
       optimized[groupId] = {
         ...group,
-        // Compress member photos to reduce size
-        members: group.members?.map((member: any) => ({
-          ...member,
-          photo: this.compressPhotoData(member.photo)
-        })) || []
+        members: optimizedMembers
       };
-    });
+    }
     
     return optimized;
   }
 
-  private static compressPhotoData(photoData: string): string {
+  private static async compressPhotoData(photoData: string): Promise<string> {
     // If photo data is too large, compress it
     if (photoData && photoData.length > 100000) { // 100KB limit
-      // For now, just truncate very large photos
-      return photoData.substring(0, 50000); // Limit to 50KB
+      try {
+        // Create a canvas to resize the image instead of truncating
+        return await this.resizeImageData(photoData, 800, 600); // Resize to reasonable dimensions
+      } catch (error) {
+        console.warn('Failed to compress photo, using original:', error);
+        return photoData;
+      }
     }
     return photoData;
+  }
+
+  private static resizeImageData(dataUrl: string, maxWidth: number, maxHeight: number): string {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Could not get canvas context'));
+            return;
+          }
+
+          // Calculate new dimensions maintaining aspect ratio
+          let { width, height } = img;
+          if (width > height) {
+            if (width > maxWidth) {
+              height = (height * maxWidth) / width;
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = (width * maxHeight) / height;
+              height = maxHeight;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          // Draw resized image
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Convert to compressed JPEG
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          resolve(compressedDataUrl);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = dataUrl;
+    });
   }
 
   private static clearOldGroups(): void {

@@ -2,14 +2,21 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {useGrid} from './context/GridContext';
+import { Member } from '@/context/CollageContext';
 
 interface CellImage {
   [key: string]: string;
 }
 
-const GridBoard = () => {
+interface GridBoardProps {
+  previewMember?: Member;
+  existingMembers?: Member[];
+}
+
+const GridBoard: React.FC<GridBoardProps> = ({ previewMember, existingMembers = [] }) => {
   const {
     cellImages,
+    setCellImages,
     isDownloading,
     getCellStyle,
     startDrag,
@@ -51,6 +58,114 @@ const GridBoard = () => {
   const cid = (section: string, row: number, col: number) => `${COMP_ID}:${section}:${row}-${col}`;
 
   const handleCellClick = (cellKey: string) => handleCellActivate(cellKey);
+
+  // Helper function to get cell style with fallback to existing members
+  const getCellStyleWithFallback = (cellKey: string) => {
+    // First try to get style from GridContext
+    const gridStyle = getCellStyle(cellKey);
+    if (gridStyle.backgroundImage) {
+      return gridStyle;
+    }
+    
+    // If no image in GridContext, check if we have an existing member for this cell
+    // This handles the case where we're in JoinGroup.tsx preview mode
+    const cellIndex = getCellIndexFromKey(cellKey);
+    if (cellIndex !== -1 && existingMembers[cellIndex]?.photo) {
+      console.log(`Using existing member photo for ${cellKey}:`, existingMembers[cellIndex].name);
+      return {
+        backgroundImage: `url(${existingMembers[cellIndex].photo})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      } as React.CSSProperties;
+    }
+    
+    return gridStyle;
+  };
+
+  // Helper function to get member index from cell key
+  const getCellIndexFromKey = (cellKey: string) => {
+    // Extract row and column from cell key
+    const parts = cellKey.split(':');
+    if (parts.length < 3) return -1;
+    
+    const section = parts[1];
+    const position = parts[2];
+    const [row, col] = position.split('-').map(Number);
+    
+    if (section === 'top') {
+      // Top row: 0-7
+      return col;
+    } else if (section === 'left') {
+      // Left side: 8-12
+      return 8 + (row - 1);
+    } else if (section === 'right') {
+      // Right side: 13-17
+      return 13 + (row - 1);
+    } else if (section === 'bottom') {
+      // Bottom row: 18-25
+      return 18 + col;
+    }else if (section === 'bottom-extension') {
+      console.log("bottom-extension mapping → row:", row, "col:", col, "index:", 26 + col);
+      return 26 + col;
+    } else if (section === 'bottom-most-extension') {
+      // Final bottom extension: 34-36
+      return 34 + col;
+    } else if (section === 'topExt-most') {
+      // Top extension: 37-44
+      return 37 + col;
+    }
+    
+    return -1;
+  };
+
+  // Debug function to log cell styles
+  const debugCellStyle = (cellKey: string) => {
+    const style = getCellStyleWithFallback(cellKey);
+    const cellIndex = getCellIndexFromKey(cellKey);
+    const hasExistingMember = cellIndex !== -1 && existingMembers[cellIndex]?.photo;
+    
+    console.log(`Cell ${cellKey}:`, {
+      cellIndex,
+      hasExistingMember,
+      existingMemberPhoto: hasExistingMember ? existingMembers[cellIndex].photo : 'none',
+      gridStyle: getCellStyle(cellKey),
+      finalStyle: style
+    });
+    
+    return style;
+  };
+
+  // Integrate form-uploaded images with GridContext
+  useEffect(() => {
+    if (previewMember?.photo) {
+      // Set the preview member's photo in the center cell
+      setCellImages(prev => ({
+        ...prev,
+        [cid('center', 0, 0)]: previewMember.photo
+      }));
+    }
+  }, [previewMember?.photo, setCellImages, cid]);
+
+  // Debug existing members and cell images
+  useEffect(() => {
+    console.log('=== DEBUG INFO ===');
+    console.log('existingMembers:', existingMembers);
+    console.log('existingMembers.length:', existingMembers?.length);
+    console.log('cellImages:', cellImages);
+    console.log('Object.keys(cellImages):', Object.keys(cellImages));
+    
+    if (existingMembers && existingMembers.length > 0) {
+      existingMembers.forEach((member, index) => {
+        console.log(`Member ${index}:`, {
+          name: member.name,
+          hasPhoto: !!member.photo,
+          photoLength: member.photo?.length || 0
+        });
+      });
+    }
+    console.log('==================');
+  }, [existingMembers, cellImages]);
 
   // Canvas helpers and renderer for this 8x10 layout
   const loadImage = (src: string) =>
@@ -283,12 +398,13 @@ const GridBoard = () => {
             } as React.CSSProperties}
           >
           {Array.from({ length: 8 }, (_, colIndex) => {
-            const cellKey = cid('topExt-most', -1, colIndex + 2);
+            const cellKey = cid('topExt-most', 0, colIndex + 2);
+            
             return (
               <div
                 key={cellKey}
                 className="grid-cell active:animate-grid-pulse relative overflow-hidden cursor-pointer"
-                style={{ ...(getCellStyle(cellKey) as any) }}
+                style={getCellStyleWithFallback(cellKey)}
                 onClick={() => handleCellClick(cellKey)}
                 role="button"
                 tabIndex={0}
@@ -313,11 +429,12 @@ const GridBoard = () => {
         {/* Top row - 9 cells */}
         {Array.from({ length: 8 }, (_, colIndex) => {
           const cellKey = cid('top', 0, colIndex);
+          
           return (
             <div
               key={cellKey}
               className="grid-cell active:animate-grid-pulse relative overflow-hidden cursor-pointer"
-              style={{ ...(getCellStyle(cellKey) as any) }}
+              style={debugCellStyle(cellKey)}
               onClick={() => handleCellClick(cellKey)}
               role="button"
               tabIndex={0}
@@ -343,7 +460,7 @@ const GridBoard = () => {
             {/* Left border cell */}
             <div
               className="grid-cell active:animate-grid-pulse relative overflow-hidden cursor-pointer"
-              style={{ ...(getCellStyle(cid('left', rowIndex + 1, 0)) as any) }}
+              style={getCellStyleWithFallback(cid('left', rowIndex + 1, 0))}
               onClick={() => handleCellClick(cid('left', rowIndex + 1, 0))}
               role="button"
               tabIndex={0}
@@ -365,12 +482,35 @@ const GridBoard = () => {
             {rowIndex === 0 && (
               <div
                 className="col-span-6 row-span-5 grid-cell active:animate-grid-pulse flex items-center justify-center text-white font-bold text-lg relative overflow-hidden"
-                style={getCellStyle(cid('center', 0, 0))}
+                style={(() => {
+                  // First priority: previewMember (for JoinGroup preview)
+                  if (previewMember?.photo) {
+                    return {
+                      backgroundImage: `url(${previewMember.photo})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat',
+                    } as React.CSSProperties;
+                  }
+                  
+                  // Second priority: first existing member (for Editor view)
+                  if (existingMembers.length > 0 && existingMembers[0]?.photo) {
+                    return {
+                      backgroundImage: `url(${existingMembers[0].photo})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat',
+                    } as React.CSSProperties;
+                  }
+                  
+                  // Fallback: use GridContext styling
+                  return getCellStyle(cid('center', 0, 0));
+                })()}
                 onClick={() => handleCellClick(cid('center', 0, 0))}
                 role="button"
                 tabIndex={0}
               >
-                {!cellImages[cid('center', 0, 0)] && (
+                {!previewMember?.photo && !existingMembers[0]?.photo && !cellImages[cid('center', 0, 0)] && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span>CENTER</span>
                   </div>
@@ -381,7 +521,7 @@ const GridBoard = () => {
             {/* Right border cell */}
             <div
               className="grid-cell active:animate-grid-pulse relative overflow-hidden cursor-pointer"
-              style={{ ...(getCellStyle(cid('right', rowIndex + 1, 7)) as any) }}
+              style={getCellStyleWithFallback(cid('right', rowIndex + 1, 7))}
               onClick={() => handleCellClick(cid('right', rowIndex + 1, 7))}
               role="button"
               tabIndex={0}
@@ -404,11 +544,12 @@ const GridBoard = () => {
         {/* Bottom row - 8 cells */}
         {Array.from({ length: 8 }, (_, colIndex) => {
           const cellKey = cid('bottom', 9, colIndex); // This matches our download cell ID
+          
           return (
             <div
               key={cellKey}
               className="grid-cell active:animate-grid-pulse relative overflow-hidden cursor-pointer"
-              style={{ ...(getCellStyle(cellKey) as any) }}
+              style={getCellStyleWithFallback(cellKey)}
               onClick={() => handleCellClick(cellKey)}
               role="button"
               tabIndex={0}
@@ -442,12 +583,13 @@ const GridBoard = () => {
             } as React.CSSProperties}
           >
             {Array.from({ length: 8 }, (_, colIndex) => {
-              const key = cid('bottom-extension', -1, colIndex + 2);
+              const key = cid('bottom-extension', 0, colIndex + 2);
+              
               return (
                 <div
                   key={key}
                   className="grid-cell active:animate-grid-pulse relative overflow-hidden cursor-pointer"
-                  style={{ ...(getCellStyle(key) as any) }}
+                  style={getCellStyleWithFallback(key)}
                   onMouseDown={(e) => startDrag(e, key)}
                   onTouchStart={(e) => startDrag(e, key)}
                   onClick={() => handleCellActivate(key)}
@@ -485,12 +627,13 @@ const GridBoard = () => {
             } as React.CSSProperties}
           >
             {Array.from({ length: 3 }, (_, colIndex) => {
-              const key = cid('bottom-most-extension', -1, colIndex + 2);
+              const key = cid('bottom-most-extension', 0, colIndex + 2);
+              
               return (
                 <div
                 key={key}
                 className="grid-cell active:animate-grid-pulse relative overflow-hidden cursor-pointer"
-                style={{ ...(getCellStyle(key) as any) }}
+                style={getCellStyleWithFallback(key)}
                 onMouseDown={(e) => startDrag(e, key)}
                 onTouchStart={(e) => startDrag(e, key)}
                 onClick={() => handleCellActivate(key)}
